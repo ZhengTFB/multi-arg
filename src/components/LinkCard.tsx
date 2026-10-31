@@ -1,13 +1,10 @@
-import { Check } from 'lucide-react'
 import type { Item, Member } from '../lib/types'
 import { clock } from '../lib/time'
 import { initial } from '../lib/color'
-import { t } from '../lib/copy'
 
 interface Props {
   item: Item
   author?: Member
-  seen?: boolean
   mine: boolean
   grouped?: boolean
   onOpen: () => void
@@ -25,7 +22,7 @@ function hostOf(url: string): string {
   }
 }
 
-export function LinkCard({ item, author, seen = false, mine, grouped = false, onOpen }: Props) {
+export function LinkCard({ item, author, mine, grouped = false, onOpen }: Props) {
   const color = author?.color ?? '#5C4033'
   const title = item.title || item.url || ''
 
@@ -49,11 +46,6 @@ export function LinkCard({ item, author, seen = false, mine, grouped = false, on
             <span className="link-title">{title}</span>
             <span className="link-host">{hostOf(item.url ?? '')}</span>
           </span>
-          {seen && (
-            <span className="link-seen" title={t('room.seen')}>
-              <Check size={10} strokeWidth={2.5} />
-            </span>
-          )}
         </button>
       </div>
     </div>

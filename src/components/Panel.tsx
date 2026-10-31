@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronDown, Share, X } from 'lucide-react'
+import { ChevronDown, Send, UserPlus, X } from 'lucide-react'
 import type { Item, Member, Room } from '../lib/types'
 import { Segmented } from './ui/Segmented'
 import type { SegItem } from './ui/Segmented'
 import { SearchBar } from './SearchBar'
 import { MemberBar } from './MemberBar'
 import { Feed } from './Feed'
+import { NoteList } from './NoteList'
 import { Composer } from './Composer'
 import { People } from './modules/People'
 import { Keywords } from './modules/Keywords'
@@ -27,7 +28,6 @@ interface Props {
   variant: 'side' | 'drawer'
   open: boolean
   conn: 'ok' | 'off' | null
-  seen: Set<string>
   unread: Set<string>
   onOpenInvite: () => void
   onCloseDrawer: () => void
@@ -38,10 +38,22 @@ interface Props {
   onSearchInGame: (q: string) => void
   onSaveKeyword: (q: string) => void
   onShareResult: (q: string) => void
-  onAddKeyword: (word: string, result: 'hit' | 'miss') => void
+  onAddKeyword: (word: string, result: 'hit' | 'miss' | 'invalid') => void
   onToggleKeyword: (item: Item) => void
   onToggleVerify: (item: Item) => void
   onReplayOnboarding: () => void
+  /** 把当前这一页发给大家 */
+  onSharePage: () => void
+  /** 有人分享页面时，面板顶部浮一条提示 */
+  notice: ShareNotice | null
+  onOpenNotice: () => void
+  onDismissNotice: () => void
+}
+
+export interface ShareNotice {
+  id: string
+  authorName: string
+  title: string
 }
 
 const LIVE_MS = 5 * 60_000
@@ -57,7 +69,6 @@ export function Panel(props: Props) {
     variant,
     open,
     conn,
-    seen,
     unread,
     onOpenInvite,
     onCloseDrawer,
@@ -72,6 +83,10 @@ export function Panel(props: Props) {
     onToggleKeyword,
     onToggleVerify,
     onReplayOnboarding,
+    onSharePage,
+    notice,
+    onOpenNotice,
+    onDismissNotice,
   } = props
 
   const [query, setQuery] = useState('')
@@ -157,8 +172,18 @@ export function Panel(props: Props) {
           <ChevronDown size={12} strokeWidth={1.5} />
         </button>
         <span className="panel-head-spacer" />
-        <button type="button" className="icon-btn" aria-label="邀请" onClick={onOpenInvite}>
-          <Share size={15} strokeWidth={1.5} />
+        <button
+          type="button"
+          className="icon-btn"
+          aria-label={t('room.rail.sharepage')}
+          title={t('room.rail.sharepage')}
+          onClick={onSharePage}
+        >
+          <Send size={15} strokeWidth={1.5} />
+        </button>
+        <button type="button" className="invite-entry" onClick={onOpenInvite}>
+          <UserPlus size={13} strokeWidth={1.6} />
+          <span data-copy="room.invite.entry">{t('room.invite.entry')}</span>
         </button>
         {variant === 'drawer' && (
           <button type="button" className="icon-btn" aria-label="收起" onClick={onCloseDrawer}>
@@ -170,6 +195,32 @@ export function Panel(props: Props) {
       {conn && (
         <div className="connbar" data-state={conn}>
           {conn === 'off' ? t('room.conn.off') : t('room.conn.ok')}
+        </div>
+      )}
+
+      {notice && (
+        <div className="share-notice">
+          <button type="button" className="share-notice-body" onClick={onOpenNotice}>
+            <b>{notice.authorName}</b>
+            <span data-copy="room.notice.shared"> {t('room.notice.shared')}</span>
+            <span className="share-notice-title">{notice.title}</span>
+          </button>
+          <button
+            type="button"
+            className="share-notice-open"
+            data-copy="room.notice.open"
+            onClick={onOpenNotice}
+          >
+            {t('room.notice.open')}
+          </button>
+          <button
+            type="button"
+            className="share-notice-x"
+            aria-label="关闭"
+            onClick={onDismissNotice}
+          >
+            <X size={12} strokeWidth={1.6} />
+          </button>
         </div>
       )}
 
@@ -199,17 +250,29 @@ export function Panel(props: Props) {
             />
           )}
 
-          {(view === 'feed' || view === 'note') && (
+          {view === 'feed' && (
             <Feed
               items={items}
               members={members}
               meId={me.id}
-              mode={view === 'note' ? 'note' : 'feed'}
+              mode="feed"
+              memberFilter="all"
+              starOnly={false}
+              query={query}
+              onOpenLink={onOpenLink}
+              onStar={onStar}
+              onExclude={onExclude}
+            />
+          )}
+
+          {view === 'note' && (
+            <NoteList
+              items={items}
+              members={members}
+              meId={me.id}
               memberFilter={memberFilter}
               starOnly={starOnly}
               query={query}
-              seen={seen}
-              onOpenLink={onOpenLink}
               onStar={onStar}
               onExclude={onExclude}
             />
@@ -217,7 +280,7 @@ export function Panel(props: Props) {
 
           {view === 'people' && <People items={items} members={members} />}
           {view === 'keyword' && (
-            <Keywords items={items} onAdd={onAddKeyword} onToggleResult={onToggleKeyword} />
+            <Keywords items={items} onAdd={onAddKeyword} onCycle={onToggleKeyword} />
           )}
           {view === 'secret' && <Secrets items={items} onToggleVerify={onToggleVerify} />}
           {view === 'timeline' && <Timeline items={items} members={members} />}

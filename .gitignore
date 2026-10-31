@@ -22,3 +22,6 @@ Thumbs.db
 
 # 工具生成的集成规则与缓存，不进仓库
 .codebuddy/
+
+# 文案保存前留的上一版备份
+src/copy.json.bak

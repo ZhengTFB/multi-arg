@@ -4,24 +4,42 @@ import { t } from '../../lib/copy'
 
 interface Props {
   items: Item[]
-  onAdd: (word: string, result: 'hit' | 'miss') => void
-  onToggleResult: (item: Item) => void
+  onAdd: (word: string, result: 'hit' | 'miss' | 'invalid') => void
+  onCycle: (item: Item) => void
 }
 
-function parse(raw: string): { word: string; result: 'hit' | 'miss' } {
+type Result = 'hit' | 'miss' | 'invalid'
+
+const LABEL: Record<Result, Parameters<typeof t>[0]> = {
+  hit: 'keyword.hit',
+  miss: 'keyword.miss',
+  invalid: 'keyword.invalid',
+}
+
+const CLASS: Record<Result, string> = {
+  miss: 'tag tag--miss',
+  hit: 'tag tag--hit',
+  invalid: 'tag tag--clay',
+}
+
+function parse(raw: string): { word: string; result: Result } {
   const cleaned = raw.replace(/^词\s*/, '')
   const parts = cleaned.split(/[=＝]/)
   const word = (parts[0] ?? '').trim()
   const tail = (parts[1] ?? '').trim()
-  return { word, result: tail.includes('未') ? 'miss' : 'hit' }
+  const result: Result = tail.includes('无效') ? 'invalid' : tail.includes('未') ? 'miss' : 'hit'
+  return { word, result }
 }
 
-export function Keywords({ items, onAdd, onToggleResult }: Props) {
+export function Keywords({ items, onAdd, onCycle }: Props) {
   const [draft, setDraft] = useState('')
   const list = items
     .filter((i) => i.type === 'keyword')
     .sort((a, b) => b.createdAt - a.createdAt)
-  const hits = list.filter((i) => i.result === 'hit').length
+
+  const count = (result: Result) => list.filter((i) => (i.result ?? 'miss') === result).length
+  const hits = count('hit')
+  const invalid = count('invalid')
 
   const commit = () => {
     const { word, result } = parse(draft)
@@ -34,7 +52,7 @@ export function Keywords({ items, onAdd, onToggleResult }: Props) {
     <div className="module">
       <div className="module-head">
         <span>
-          {hits} 命中 · {list.length - hits} 未命中
+          {hits} 有效 · {invalid} 无效
         </span>
       </div>
 
@@ -46,24 +64,27 @@ export function Keywords({ items, onAdd, onToggleResult }: Props) {
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.nativeEvent.isComposing) commit()
           }}
-          aria-label="记一个关键词"
+          aria-label={t('keyword.placeholder')}
         />
       </div>
 
       <div className="kw-list">
-        {list.map((item) => (
-          <div key={item.id} className="kw-row">
-            <span className="kw-word">{item.keyword}</span>
-            <button
-              type="button"
-              className={`tag ${item.result === 'hit' ? 'tag--hit' : 'tag--miss'}`}
-              title="点一下换结果"
-              onClick={() => onToggleResult(item)}
-            >
-              {item.result === 'hit' ? t('keyword.hit') : t('keyword.miss')}
-            </button>
-          </div>
-        ))}
+        {list.map((item) => {
+          const result = (item.result ?? 'miss') as Result
+          return (
+            <div key={item.id} className="kw-row">
+              <span className="kw-word">{item.keyword}</span>
+              <button
+                type="button"
+                className={CLASS[result]}
+                title="点一下切状态：未尝试 → 有效 → 无效"
+                onClick={() => onCycle(item)}
+              >
+                {t(LABEL[result])}
+              </button>
+            </div>
+          )
+        })}
         {list.length === 0 && <p className="feed-empty">{t('keyword.empty')}</p>}
       </div>
     </div>

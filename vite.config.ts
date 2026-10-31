@@ -36,6 +36,8 @@ function copySave(): Plugin {
               if (typeof value === 'string') next[key] = value
             }
 
+            // 每次保存前留一份上一次的完整内容，误覆盖时还能捞回来
+            await fs.copyFile(COPY_FILE, `${COPY_FILE}.bak`).catch(() => {})
             await fs.writeFile(COPY_FILE, `${JSON.stringify(next, null, 2)}\n`, 'utf8')
             res.setHeader('content-type', 'application/json')
             res.end(JSON.stringify({ ok: true, count: Object.keys(patch).length }))

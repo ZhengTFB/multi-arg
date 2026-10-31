@@ -3,12 +3,11 @@ import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { Item, ModuleKey } from '../lib/types'
 import { mockItems, mockMembers, mockRoom, MOCK_ME } from '../lib/mock'
 import { load, save, has } from '../lib/storage'
-import { t } from '../lib/copy'
 import { GameFrame } from '../components/GameFrame'
 import { EdgeRail } from '../components/EdgeRail'
 import type { RailAction } from '../components/EdgeRail'
 import { Panel } from '../components/Panel'
-import type { View } from '../components/Panel'
+import type { ShareNotice, View } from '../components/Panel'
 import { Invite } from '../components/Invite'
 import { Onboarding } from '../components/Onboarding'
 
@@ -45,15 +44,13 @@ export function Room({ id, token }: Props) {
   const [frameSrc, setFrameSrc] = useState(room.game.url)
   const [backVisible, setBackVisible] = useState(false)
   const [flash, setFlash] = useState(0)
-  const [hint, setHint] = useState<string | null>(null)
-  const [hintLeaving, setHintLeaving] = useState(false)
-  const [breathe, setBreathe] = useState(false)
   const [conn, setConn] = useState<'ok' | 'off' | null>(() => (navigator.onLine ? null : 'off'))
+  const [guideOpen, setGuideOpen] = useState(() => !has('onboarded'))
+  const [notice, setNotice] = useState<ShareNotice | null>(null)
 
   const stack = useRef<string[]>([])
   const dragY = useRef<number | null>(null)
   const skipClick = useRef(false)
-  const [seen, setSeen] = useState<Set<string>>(() => new Set(load<string[]>('seen', [])))
   const [unread] = useState<Set<string>>(() => new Set(['m3']))
 
   useEffect(() => {
@@ -82,38 +79,24 @@ export function Room({ id, token }: Props) {
     }
   }, [])
 
-  const runOnboarding = useCallback(() => {
-    setBreathe(false)
-    setHint(null)
-    setHintLeaving(false)
-    const timers = [
-      window.setTimeout(() => setBreathe(true), 400),
-      window.setTimeout(() => {
-        if (phone) return
-        setRailOpen(true)
-      }, 1000),
-      window.setTimeout(() => {
-        if (phone) return
-        setRailOpen(false)
-      }, 2500),
-      window.setTimeout(() => {
-        setHint(phone ? t('room.onboard.phone') : t('room.onboard.desktop'))
-      }, 1000),
-      window.setTimeout(() => setHintLeaving(true), 6000),
-      window.setTimeout(() => setHint(null), 6700),
-    ]
-    return () => timers.forEach((t) => window.clearTimeout(t))
+  // 引导关掉之后直接把面板打开，让人第一眼看到聊天在哪
+  const finishGuide = useCallback(() => {
+    save('onboarded', true)
+    setGuideOpen(false)
+    if (phone) {
+      setDrawer('half')
+      return
+    }
+    setPanelOpen(true)
+    setRailOpen(true)
+    window.setTimeout(() => setRailOpen(false), 1800)
   }, [phone])
 
-  useEffect(() => {
-    if (has('onboarded')) return
-    const stop = runOnboarding()
-    const done = window.setTimeout(() => save('onboarded', true), 6800)
-    return () => {
-      stop()
-      window.clearTimeout(done)
-    }
-    // 只在进房时演示一次
+  const showNotice = useCallback((next: ShareNotice) => {
+    setNotice(next)
+    window.setTimeout(() => {
+      setNotice((cur) => (cur && cur.id === next.id ? null : cur))
+    }, 9000)
   }, [])
 
   const bumpFlash = useCallback(() => setFlash((n) => n + 1), [])
@@ -132,12 +115,6 @@ export function Room({ id, token }: Props) {
       setFrameSrc(next)
       setBackVisible(true)
       window.setTimeout(() => setBackVisible(false), 3000)
-      setSeen((prev) => {
-        const nextSet = new Set(prev)
-        nextSet.add(item.id)
-        save('seen', [...nextSet])
-        return nextSet
-      })
     },
     [frameSrc],
   )
@@ -170,7 +147,11 @@ export function Room({ id, token }: Props) {
           type: 'keyword',
           ...base,
           keyword: (word ?? '').trim(),
-          result: (tail ?? '').includes('未') ? 'miss' : 'hit',
+          result: (tail ?? '').includes('无效')
+            ? 'invalid'
+            : (tail ?? '').includes('未')
+              ? 'miss'
+              : 'hit',
         })
         // 记进去的内容在对应模块里，直接切过去，省得用户以为没发出去
         setView('keyword')
@@ -222,11 +203,14 @@ export function Room({ id, token }: Props) {
     )
   }, [])
 
+  // 未尝试 → 有效 → 无效 → 未尝试
   const onToggleKeyword = useCallback((item: Item) => {
     setItems((prev) =>
-      prev.map((i) =>
-        i.id === item.id ? { ...i, result: i.result === 'hit' ? 'miss' : 'hit' } : i,
-      ),
+      prev.map((i) => {
+        if (i.id !== item.id) return i
+        const next = i.result === 'hit' ? 'invalid' : i.result === 'invalid' ? 'miss' : 'hit'
+        return { ...i, result: next }
+      }),
     )
   }, [])
 
@@ -241,7 +225,7 @@ export function Room({ id, token }: Props) {
   }, [])
 
   const onAddKeyword = useCallback(
-    (word: string, result: 'hit' | 'miss') => {
+    (word: string, result: 'hit' | 'miss' | 'invalid') => {
       push({ id: `k${Date.now()}`, type: 'keyword', authorId: me.id, createdAt: Date.now(), keyword: word, result })
     },
     [me.id, push],
@@ -305,21 +289,29 @@ export function Room({ id, token }: Props) {
     return () => window.removeEventListener('keydown', onKey)
   }, [phone])
 
+  const sharePage = useCallback(() => {
+    const now = Date.now()
+    const id = `l${now}`
+    const title = frameSrc.includes('p=duty') ? '值班表' : '店内环境'
+    push({
+      id,
+      type: 'link',
+      authorId: me.id,
+      createdAt: now,
+      url: frameSrc,
+      title,
+      pageUrl: frameSrc,
+    })
+    showNotice({ id, authorName: me.name, title })
+  }, [frameSrc, me.id, me.name, push, showNotice])
+
   const handleRail = useCallback(
     (action: RailAction) => {
-      if (action === 'pin') {
-        push({
-          id: `l${Date.now()}`,
-          type: 'link',
-          authorId: me.id,
-          createdAt: Date.now(),
-          url: frameSrc,
-          title: '店内环境',
-          pageUrl: frameSrc,
-        })
+      if (action === 'sharePage') {
+        sharePage()
         return
       }
-      if (action === 'share') {
+      if (action === 'invite') {
         setInviteOpen(true)
         return
       }
@@ -332,7 +324,7 @@ export function Room({ id, token }: Props) {
         }, 420)
       }
     },
-    [frameSrc, me.id, push, room.modules],
+    [room.modules, sharePage],
   )
 
   const swiped = (e: ReactPointerEvent, direction: 'up' | 'down' | 'both') => {
@@ -378,7 +370,6 @@ export function Room({ id, token }: Props) {
             variant="drawer"
             open
             conn={conn}
-            seen={seen}
             unread={unread}
             onOpenInvite={() => setInviteOpen(true)}
             onCloseDrawer={() => setDrawer('closed')}
@@ -394,14 +385,21 @@ export function Room({ id, token }: Props) {
             onToggleVerify={onToggleVerify}
             onReplayOnboarding={() => {
               save('onboarded', false)
-              runOnboarding()
+              setGuideOpen(true)
             }}
+            notice={notice}
+            onSharePage={sharePage}
+            onOpenNotice={() => {
+              const target = items.find((i) => i.id === notice?.id)
+              if (target) openLink(target)
+              setNotice(null)
+            }}
+            onDismissNotice={() => setNotice(null)}
           />
         </div>
 
         <div
           className="conveyor"
-          data-nudge={breathe || undefined}
           onPointerDown={(e) => {
             dragY.current = e.clientY
           }}
@@ -417,7 +415,7 @@ export function Room({ id, token }: Props) {
         </div>
 
         <Invite room={room} token={token || 'demo'} open={inviteOpen} onClose={() => setInviteOpen(false)} />
-        <Onboarding text={hint} leaving={hintLeaving} />
+        <Onboarding open={guideOpen} onStart={finishGuide} />
       </div>
     )
   }
@@ -434,7 +432,7 @@ export function Room({ id, token }: Props) {
         />
       )}
 
-      <EdgeRail open={railOpen} breath={breathe} onToggle={setRailOpen} onAction={handleRail} />
+      <EdgeRail open={railOpen} onToggle={setRailOpen} onAction={handleRail} />
 
       {flash > 0 && <div className="flash-band" key={flash} />}
 
@@ -448,7 +446,6 @@ export function Room({ id, token }: Props) {
         variant="side"
         open={panelOpen}
         conn={conn}
-        seen={seen}
         unread={unread}
         onOpenInvite={() => setInviteOpen(true)}
         onCloseDrawer={() => setPanelOpen(false)}
@@ -465,12 +462,20 @@ export function Room({ id, token }: Props) {
         onReplayOnboarding={() => {
           save('onboarded', false)
           setPanelOpen(false)
-          runOnboarding()
+          setGuideOpen(true)
         }}
+        notice={notice}
+        onSharePage={sharePage}
+        onOpenNotice={() => {
+          const target = items.find((i) => i.id === notice?.id)
+          if (target) openLink(target)
+          setNotice(null)
+        }}
+        onDismissNotice={() => setNotice(null)}
       />
 
       <Invite room={room} token={token || 'demo'} open={inviteOpen} onClose={() => setInviteOpen(false)} />
-      <Onboarding text={hint} leaving={hintLeaving} />
+      <Onboarding open={guideOpen} onStart={finishGuide} />
     </div>
   )
 }

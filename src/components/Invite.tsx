@@ -62,8 +62,8 @@ export function Invite({ room, token, open, onClose }: Props) {
         {t('room.invite.title')}
       </p>
       <p className="invite-room">{room.id}</p>
-      <p className="invite-pass">
-        <span data-copy="room.invite.pass">{t('room.invite.pass')}</span> <b>{room.pass}</b>
+      <p className="invite-how" data-copy="room.invite.how">
+        {t('room.invite.how')}
       </p>
 
       <div className="qr" aria-label="进房二维码">
@@ -76,7 +76,9 @@ export function Invite({ room, token, open, onClose }: Props) {
 
       <div className="invite-actions">
         <Button variant="secondary" block onClick={copy}>
-          <span data-copy="room.invite.copy">{copied ? t('room.invite.copied') : t('room.invite.copy')}</span>
+          <span data-copy="room.invite.copy">
+            {copied ? t('room.invite.copied') : t('room.invite.copy')}
+          </span>
         </Button>
         {canShare && (
           <Button

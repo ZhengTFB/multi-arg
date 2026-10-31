@@ -12,7 +12,6 @@ export function mockRoom(id: string): Room {
     id,
     createdAt: now - 3 * HOUR,
     expiresAt: now + 6.2 * 24 * HOUR,
-    pass: '3165',
     game: {
       url: '/mock-game.html',
       origin: location.origin,

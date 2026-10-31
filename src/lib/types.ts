@@ -19,7 +19,6 @@ export interface Room {
   game: Game
   modules: ModuleKey[]
   expired?: boolean
-  pass?: string
 }
 
 export interface Member {
@@ -45,7 +44,8 @@ export interface Item {
   title?: string
   text?: string
   keyword?: string
-  result?: 'hit' | 'miss'
+  /** hit = 有效，miss = 未尝试，invalid = 无效 */
+  result?: 'hit' | 'miss' | 'invalid'
   person?: { name: string; note?: string }
   relations?: { from: string; to: string; label: string }[]
   secret?: { account: string; password: string; usage?: string; verified: boolean }

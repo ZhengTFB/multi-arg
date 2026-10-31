@@ -1,15 +1,15 @@
 import { useRef } from 'react'
-import { LayoutGrid, MessageSquare, PenLine, Pin, Share } from 'lucide-react'
+import { LayoutGrid, MessageSquare, PenLine, Send, UserPlus } from 'lucide-react'
 import { t } from '../lib/copy'
 
-export type RailAction = 'pin' | 'feed' | 'note' | 'modules' | 'share'
+export type RailAction = 'sharePage' | 'feed' | 'note' | 'modules' | 'invite'
 
-const ICONS: { key: RailAction; Icon: typeof Pin; label: string }[] = [
-  { key: 'pin', Icon: Pin, label: t('room.rail.pin') },
+const ICONS: { key: RailAction; Icon: typeof Send; label: string }[] = [
+  { key: 'sharePage', Icon: Send, label: t('room.rail.sharepage') },
   { key: 'feed', Icon: MessageSquare, label: t('room.rail.feed') },
   { key: 'note', Icon: PenLine, label: t('room.rail.note') },
   { key: 'modules', Icon: LayoutGrid, label: t('room.rail.modules') },
-  { key: 'share', Icon: Share, label: t('room.rail.invite') },
+  { key: 'invite', Icon: UserPlus, label: t('room.rail.invite') },
 ]
 
 interface Props {

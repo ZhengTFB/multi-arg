@@ -39,8 +39,7 @@ export function useRoute(): Route {
   return route
 }
 
-/** 8 位数字（4 位房间号 + 4 位口令）在输入框里自动分组，粘贴邀请码也认。 */
+/** 房间号是 4 位数字，粘贴带空格的邀请码也认。 */
 export function formatRoomCode(raw: string): string {
-  const digits = raw.replace(/\D/g, '').slice(0, 8)
-  return digits.length > 4 ? `${digits.slice(0, 4)} ${digits.slice(4)}` : digits
+  return raw.replace(/\D/g, '').slice(0, 4)
 }

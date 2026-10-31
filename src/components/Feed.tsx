@@ -15,7 +15,6 @@ interface Props {
   memberFilter: string
   starOnly: boolean
   query: string
-  seen: Set<string>
   onOpenLink: (item: Item) => void
   onStar: (item: Item) => void
   onExclude: (item: Item) => void
@@ -50,7 +49,6 @@ export function Feed({
   memberFilter,
   starOnly,
   query,
-  seen,
   onOpenLink,
   onStar,
   onExclude,
@@ -151,7 +149,6 @@ export function Feed({
                 author={author}
                 mine={mine}
                 grouped={grouped}
-                seen={seen.has(item.id)}
                 onOpen={() => onOpenLink(item)}
               />
             ) : (
