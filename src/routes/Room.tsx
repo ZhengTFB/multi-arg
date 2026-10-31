@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
+import { ChevronDown, MessageSquare } from 'lucide-react'
 import type { Item, ModuleKey } from '../lib/types'
 import { mockItems, mockMembers, mockRoom, MOCK_ME } from '../lib/mock'
 import { load, save, has } from '../lib/storage'
+import { t } from '../lib/copy'
 import { GameFrame } from '../components/GameFrame'
 import { EdgeRail } from '../components/EdgeRail'
 import type { RailAction } from '../components/EdgeRail'
 import { Panel } from '../components/Panel'
 import type { ShareNotice, View } from '../components/Panel'
 import { Invite } from '../components/Invite'
-import { Onboarding } from '../components/Onboarding'
 
 interface Props {
   id: string
@@ -39,17 +40,21 @@ export function Room({ id, token }: Props) {
   const [panelOpen, setPanelOpen] = useState(false)
   const [railOpen, setRailOpen] = useState(false)
   const [inviteOpen, setInviteOpen] = useState(false)
-  const [drawer, setDrawer] = useState<DrawerLevel>('closed')
+  const [level, setLevel] = useState<DrawerLevel>('closed')
+  const [dragH, setDragH] = useState<number | null>(null)
   const [phone, setPhone] = useState(() => window.matchMedia(PHONE_QUERY).matches)
+  const [vh, setVh] = useState(() => window.innerHeight)
   const [frameSrc, setFrameSrc] = useState(room.game.url)
   const [backVisible, setBackVisible] = useState(false)
   const [flash, setFlash] = useState(0)
   const [conn, setConn] = useState<'ok' | 'off' | null>(() => (navigator.onLine ? null : 'off'))
-  const [guideOpen, setGuideOpen] = useState(() => !has('onboarded'))
+  const [immersive, setImmersive] = useState(false)
+  const [coachOpen, setCoachOpen] = useState(() => !has('coach'))
   const [notice, setNotice] = useState<ShareNotice | null>(null)
 
   const stack = useRef<string[]>([])
-  const dragY = useRef<number | null>(null)
+  const dragRef = useRef<{ startY: number; startH: number } | null>(null)
+  const liveH = useRef(0)
   const skipClick = useRef(false)
   const [unread] = useState<Set<string>>(() => new Set(['m3']))
 
@@ -58,6 +63,12 @@ export function Room({ id, token }: Props) {
     const onChange = () => setPhone(mq.matches)
     mq.addEventListener('change', onChange)
     return () => mq.removeEventListener('change', onChange)
+  }, [])
+
+  useEffect(() => {
+    const onResize = () => setVh(window.innerHeight)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
   }, [])
 
   useEffect(() => {
@@ -79,18 +90,16 @@ export function Room({ id, token }: Props) {
     }
   }, [])
 
-  // 引导关掉之后直接把面板打开，让人第一眼看到聊天在哪
-  const finishGuide = useCallback(() => {
-    save('onboarded', true)
-    setGuideOpen(false)
-    if (phone) {
-      setDrawer('half')
-      return
-    }
-    setPanelOpen(true)
-    setRailOpen(true)
-    window.setTimeout(() => setRailOpen(false), 1800)
-  }, [phone])
+  const dismissCoach = useCallback(() => {
+    setCoachOpen(false)
+    save('coach', true)
+  }, [])
+
+  useEffect(() => {
+    if (!coachOpen) return
+    const timer = window.setTimeout(dismissCoach, 9000)
+    return () => window.clearTimeout(timer)
+  }, [coachOpen, dismissCoach])
 
   const showNotice = useCallback((next: ShareNotice) => {
     setNotice(next)
@@ -101,10 +110,18 @@ export function Room({ id, token }: Props) {
 
   const bumpFlash = useCallback(() => setFlash((n) => n + 1), [])
 
-  const push = useCallback((item: Item) => {
-    setItems((prev) => [...prev, item])
-    bumpFlash()
-  }, [bumpFlash])
+  const push = useCallback(
+    (item: Item) => {
+      setItems((prev) => [...prev, item])
+      bumpFlash()
+    },
+    [bumpFlash],
+  )
+
+  const openPanel = useCallback(() => {
+    setImmersive(false)
+    setPanelOpen(true)
+  }, [])
 
   const openLink = useCallback(
     (item: Item) => {
@@ -226,7 +243,14 @@ export function Room({ id, token }: Props) {
 
   const onAddKeyword = useCallback(
     (word: string, result: 'hit' | 'miss' | 'invalid') => {
-      push({ id: `k${Date.now()}`, type: 'keyword', authorId: me.id, createdAt: Date.now(), keyword: word, result })
+      push({
+        id: `k${Date.now()}`,
+        type: 'keyword',
+        authorId: me.id,
+        createdAt: Date.now(),
+        keyword: word,
+        result,
+      })
     },
     [me.id, push],
   )
@@ -254,41 +278,6 @@ export function Room({ id, token }: Props) {
     [frameSrc, me.id, push, room.game.searchParam, room.game.url],
   )
 
-  // 键盘：⌘K 搜索、⌘N 记一笔、Esc 收起
-  useEffect(() => {
-    const focus = (selector: string) => {
-      window.setTimeout(() => {
-        const el = document.querySelector<HTMLElement>(selector)
-        el?.focus()
-      }, 90)
-    }
-    const onKey = (e: KeyboardEvent) => {
-      const meta = e.metaKey || e.ctrlKey
-      if (meta && e.key.toLowerCase() === 'k') {
-        e.preventDefault()
-        if (phone) setDrawer('full')
-        else setPanelOpen(true)
-        focus('[data-search-input]')
-        return
-      }
-      if (meta && e.key.toLowerCase() === 'n') {
-        e.preventDefault()
-        if (phone) setDrawer('full')
-        else setPanelOpen(true)
-        focus('[data-composer]')
-        return
-      }
-      if (e.key === 'Escape') {
-        setRailOpen(false)
-        setInviteOpen(false)
-        if (phone) setDrawer('closed')
-        else setPanelOpen(false)
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [phone])
-
   const sharePage = useCallback(() => {
     const now = Date.now()
     const id = `l${now}`
@@ -305,6 +294,40 @@ export function Room({ id, token }: Props) {
     showNotice({ id, authorName: me.name, title })
   }, [frameSrc, me.id, me.name, push, showNotice])
 
+  // 键盘：⌘K 搜索、⌘N 记一笔、Esc 收起
+  useEffect(() => {
+    const focus = (selector: string) => {
+      window.setTimeout(() => {
+        document.querySelector<HTMLElement>(selector)?.focus()
+      }, 90)
+    }
+    const onKey = (e: KeyboardEvent) => {
+      const meta = e.metaKey || e.ctrlKey
+      if (meta && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        if (phone) setLevel('full')
+        else openPanel()
+        focus('[data-search-input]')
+        return
+      }
+      if (meta && e.key.toLowerCase() === 'n') {
+        e.preventDefault()
+        if (phone) setLevel('full')
+        else openPanel()
+        focus('[data-composer]')
+        return
+      }
+      if (e.key === 'Escape') {
+        setRailOpen(false)
+        setInviteOpen(false)
+        if (phone) setLevel('closed')
+        else setPanelOpen(false)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [phone, openPanel])
+
   const handleRail = useCallback(
     (action: RailAction) => {
       if (action === 'sharePage') {
@@ -315,7 +338,7 @@ export function Room({ id, token }: Props) {
         setInviteOpen(true)
         return
       }
-      setPanelOpen(true)
+      openPanel()
       if (action === 'feed') setView('feed')
       if (action === 'modules') setView(room.modules.includes('person') ? 'people' : 'keyword')
       if (action === 'note') {
@@ -324,21 +347,62 @@ export function Room({ id, token }: Props) {
         }, 420)
       }
     },
-    [room.modules, sharePage],
+    [room.modules, sharePage, openPanel],
   )
 
-  const swiped = (e: ReactPointerEvent, direction: 'up' | 'down' | 'both') => {
-    if (dragY.current === null) return
-    const dy = e.clientY - dragY.current
-    dragY.current = null
-    if (Math.abs(dy) > 16) {
-      skipClick.current = true
-      window.setTimeout(() => {
-        skipClick.current = false
-      }, 320)
+  // 模块视图在手机上需要更多高度，切过去就顶到最高
+  const changeView = useCallback(
+    (next: View) => {
+      setView(next)
+      if (phone && next !== 'feed' && next !== 'note') setLevel('full')
+    },
+    [phone],
+  )
+
+  const HALF = 0.62
+  const sheetHeight = dragH ?? (level === 'closed' ? 0 : level === 'half' ? vh * HALF : vh * 0.9)
+
+  const startDrag = (e: ReactPointerEvent<HTMLDivElement>) => {
+    dragRef.current = { startY: e.clientY, startH: sheetHeight }
+    liveH.current = sheetHeight
+    e.currentTarget.setPointerCapture(e.pointerId)
+  }
+
+  const moveDrag = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const d = dragRef.current
+    if (!d) return
+    const next = Math.min(Math.max(d.startH - (e.clientY - d.startY), 0), vh * 0.92)
+    liveH.current = next
+    setDragH(next)
+  }
+
+  const endDrag = () => {
+    const d = dragRef.current
+    dragRef.current = null
+    if (!d) return
+    const h = liveH.current
+    const moved = Math.abs(h - d.startH) > 10
+    setDragH(null)
+
+    if (!moved) {
+      setLevel((cur) => (cur === 'full' ? 'half' : cur === 'half' ? 'full' : 'half'))
+      return
     }
-    if (dy < -16) setDrawer((d) => (d === 'closed' ? 'half' : 'full'))
-    else if (dy > 16 && direction !== 'up') setDrawer((d) => (d === 'full' ? 'half' : 'closed'))
+
+    const down = h < d.startH
+    if (down) {
+      const ratio = (d.startH - h) / Math.max(d.startH, 1)
+      // 往下拖得多就是关，拖一点点就从满高回到半高
+      if (ratio > 0.38 || h < 60) setLevel('closed')
+      else if (d.startH > vh * 0.78) setLevel('half')
+      else setLevel(level)
+    } else if (h > vh * 0.72) {
+      setLevel('full')
+    } else if (h > vh * 0.22) {
+      setLevel('half')
+    } else {
+      setLevel('closed')
+    }
   }
 
   const latest = items.filter((i) => i.type !== 'system').slice(-1)[0]
@@ -350,15 +414,39 @@ export function Room({ id, token }: Props) {
       <div className="room room--phone">
         <GameFrame src={frameSrc} phone backVisible={backVisible} onBack={goBack} />
 
-        <div className="drawer" data-level={drawer}>
+        {sheetHeight > 4 && (
+          <div
+            className="sheet-scrim"
+            style={{ opacity: Math.min(0.34, (sheetHeight / vh) * 0.42) }}
+            onClick={() => setLevel('closed')}
+            role="presentation"
+          />
+        )}
+
+        <div
+          className="drawer"
+          data-open={sheetHeight > 4}
+          style={{
+            height: sheetHeight,
+            transition: dragH === null ? 'height 0.34s var(--ease)' : 'none',
+          }}
+        >
           <div
             className="drawer-handle"
-            onPointerDown={(e) => {
-              dragY.current = e.clientY
-            }}
-            onPointerUp={(e) => swiped(e, 'both')}
+            onPointerDown={startDrag}
+            onPointerMove={moveDrag}
+            onPointerUp={endDrag}
+            onPointerCancel={endDrag}
           >
             <span />
+            <button
+              type="button"
+              className="drawer-close"
+              aria-label="关闭"
+              onClick={() => setLevel('closed')}
+            >
+              <ChevronDown size={16} strokeWidth={1.8} />
+            </button>
           </div>
           <Panel
             room={room}
@@ -366,13 +454,13 @@ export function Room({ id, token }: Props) {
             items={items}
             me={me}
             view={view}
-            onView={setView}
+            onView={changeView}
             variant="drawer"
             open
             conn={conn}
             unread={unread}
             onOpenInvite={() => setInviteOpen(true)}
-            onCloseDrawer={() => setDrawer('closed')}
+            onImmersive={() => setLevel('closed')}
             onOpenLink={openLink}
             onStar={onStar}
             onExclude={onExclude}
@@ -384,8 +472,8 @@ export function Room({ id, token }: Props) {
             onToggleKeyword={onToggleKeyword}
             onToggleVerify={onToggleVerify}
             onReplayOnboarding={() => {
-              save('onboarded', false)
-              setGuideOpen(true)
+              save('coach', false)
+              setCoachOpen(true)
             }}
             notice={notice}
             onSharePage={sharePage}
@@ -401,12 +489,25 @@ export function Room({ id, token }: Props) {
         <div
           className="conveyor"
           onPointerDown={(e) => {
-            dragY.current = e.clientY
+            dragRef.current = { startY: e.clientY, startH: sheetHeight }
           }}
-          onPointerUp={(e) => swiped(e, 'up')}
+          onPointerUp={(e) => {
+            const d = dragRef.current
+            dragRef.current = null
+            if (!d) return
+            const dy = e.clientY - d.startY
+            if (Math.abs(dy) > 16) {
+              skipClick.current = true
+              window.setTimeout(() => {
+                skipClick.current = false
+              }, 320)
+              setLevel((cur) => (dy < 0 ? (cur === 'closed' ? 'half' : 'full') : 'closed'))
+            }
+          }}
           onClick={() => {
             if (skipClick.current) return
-            setDrawer((d) => (d === 'closed' ? 'half' : 'full'))
+            setCoachOpen(false)
+            setLevel((cur) => (cur === 'closed' ? 'half' : 'full'))
           }}
         >
           <span className="conveyor-name">{latestAuthor?.name ?? ''}</span>
@@ -414,14 +515,25 @@ export function Room({ id, token }: Props) {
           <span className="conveyor-grip" />
         </div>
 
-        <Invite room={room} token={token || 'demo'} open={inviteOpen} onClose={() => setInviteOpen(false)} />
-        <Onboarding open={guideOpen} onStart={finishGuide} />
+        {coachOpen && (
+          <button type="button" className="coach" onClick={dismissCoach}>
+            <span data-copy="room.coach">{t('room.coach')}</span>
+            <ChevronDown size={14} strokeWidth={1.8} />
+          </button>
+        )}
+
+        <Invite
+          room={room}
+          token={token || 'demo'}
+          open={inviteOpen}
+          onClose={() => setInviteOpen(false)}
+        />
       </div>
     )
   }
 
   return (
-    <div className="room">
+    <div className="room" data-immersive={immersive || undefined}>
       <GameFrame src={frameSrc} phone={false} backVisible={backVisible} onBack={goBack} />
 
       {railOpen && (
@@ -442,13 +554,16 @@ export function Room({ id, token }: Props) {
         items={items}
         me={me}
         view={view}
-        onView={setView}
+        onView={changeView}
         variant="side"
         open={panelOpen}
         conn={conn}
         unread={unread}
         onOpenInvite={() => setInviteOpen(true)}
-        onCloseDrawer={() => setPanelOpen(false)}
+        onImmersive={() => {
+          setPanelOpen(false)
+          setImmersive(true)
+        }}
         onOpenLink={openLink}
         onStar={onStar}
         onExclude={onExclude}
@@ -460,9 +575,8 @@ export function Room({ id, token }: Props) {
         onToggleKeyword={onToggleKeyword}
         onToggleVerify={onToggleVerify}
         onReplayOnboarding={() => {
-          save('onboarded', false)
-          setPanelOpen(false)
-          setGuideOpen(true)
+          save('coach', false)
+          setCoachOpen(true)
         }}
         notice={notice}
         onSharePage={sharePage}
@@ -474,8 +588,24 @@ export function Room({ id, token }: Props) {
         onDismissNotice={() => setNotice(null)}
       />
 
-      <Invite room={room} token={token || 'demo'} open={inviteOpen} onClose={() => setInviteOpen(false)} />
-      <Onboarding open={guideOpen} onStart={finishGuide} />
+      {!panelOpen && (
+        <button
+          type="button"
+          className="float-entry"
+          aria-label={t('room.immersive.exit')}
+          title={t('room.immersive.exit')}
+          onClick={openPanel}
+        >
+          <MessageSquare size={18} strokeWidth={1.6} />
+        </button>
+      )}
+
+      <Invite
+        room={room}
+        token={token || 'demo'}
+        open={inviteOpen}
+        onClose={() => setInviteOpen(false)}
+      />
     </div>
   )
 }

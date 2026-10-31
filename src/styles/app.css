@@ -270,23 +270,99 @@ textarea {
 
 /* ---------- 首页 ---------- */
 
-.home {
-  display: flex;
-  flex-direction: column;
+.page-center {
+  display: grid;
+  place-items: center;
   min-height: 100dvh;
-  padding: 26px clamp(20px, 4vw, 56px) 22px;
+  padding: 24px;
+  text-align: center;
 }
 
-.home-main {
+.home {
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.home-scroll {
+  height: 100dvh;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+.home-top {
+  padding: 26px clamp(20px, 4vw, 56px) 0;
+}
+
+.hero {
+  position: relative;
   display: flex;
-  flex: 1;
   flex-direction: column;
+  align-items: center;
   justify-content: center;
+  min-height: calc(100dvh - 70px);
+  padding: 0 clamp(20px, 4vw, 56px) 78px;
+}
+
+.hero-inner {
+  display: flex;
+  flex-direction: column;
   gap: 24px;
   width: 100%;
   max-width: 660px;
+}
+
+.scroll-cue {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  font-size: 11.5px;
+  color: var(--earth-2);
+  border-radius: 999px;
+  opacity: 0.72;
+  transform: translateX(-50%);
+  transition:
+    opacity 0.4s ease-in-out,
+    background-color 0.4s ease-in-out;
+}
+
+.scroll-cue:hover {
+  background: var(--earth-08);
+  opacity: 1;
+}
+
+.scroll-cue svg {
+  animation: cue-bob 2.4s ease-in-out infinite;
+}
+
+@keyframes cue-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(3px);
+  }
+}
+
+.reco-section {
+  max-width: 660px;
+  min-height: calc(100dvh - 24px);
   margin: 0 auto;
-  padding: 12px 0 4px;
+  padding: 6px clamp(20px, 4vw, 24px) 72px;
+  opacity: 0;
+  transform: translateY(26px);
+  transition:
+    opacity 0.6s var(--ease),
+    transform 0.6s var(--ease);
+}
+
+.reco-section[data-in="true"] {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .home-title {
@@ -670,6 +746,16 @@ textarea {
   position: absolute;
   inset: 0;
   padding: 18px 380px 18px 18px;
+  transition: padding 0.36s var(--ease);
+}
+
+/* 沉浸模式：把辅助栏那块也还给游戏 */
+.room[data-immersive="true"] .stage {
+  padding-right: 18px;
+}
+
+.room[data-immersive="true"] .frame {
+  max-width: none;
 }
 
 .frame {
@@ -900,6 +986,19 @@ textarea {
 }
 
 .panel-room {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.panel-room-label {
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--earth-2);
+  opacity: 0.7;
+}
+
+.panel-room-code {
   font-family: var(--font-num);
   font-size: 15px;
   font-weight: 600;
@@ -972,6 +1071,106 @@ textarea {
 
 .invite-entry:active {
   transform: scale(0.96);
+}
+
+/* 分享此页：辅助功能里最重要的一颗按钮，做成实心 */
+.share-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--bg);
+  background: var(--earth);
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(92, 64, 51, 0.2);
+  transition:
+    transform 0.3s var(--ease),
+    box-shadow 0.4s ease-in-out;
+}
+
+.share-cta:hover {
+  box-shadow: var(--shadow-deep);
+}
+
+.share-cta:active {
+  transform: scale(0.95);
+}
+
+/* 面板左边那条可以点的小把手：收起并进入沉浸 */
+.panel-collapse {
+  position: absolute;
+  top: 50%;
+  left: -19px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 48px;
+  color: var(--earth-2);
+  background: rgba(250, 246, 241, 0.94);
+  border: 1px solid var(--linen);
+  border-right: 0;
+  border-radius: 10px 0 0 10px;
+  box-shadow: -4px 0 12px rgba(92, 64, 51, 0.08);
+  opacity: 0.9;
+  transform: translateY(-50%);
+  transition:
+    opacity 0.3s ease-in-out,
+    transform 0.3s var(--ease);
+}
+
+.panel-collapse:hover {
+  opacity: 1;
+  transform: translateY(-50%) translateX(-2px);
+}
+
+/* 面板收起时这个把手会落在屏幕右缘，挡住缝和浮出的图标，所以藏着 */
+.panel[data-open="false"] .panel-collapse {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* 面板收起后右下角那颗圆按钮 */
+.float-entry {
+  position: absolute;
+  right: 20px;
+  bottom: 20px;
+  z-index: 32;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  color: var(--earth);
+  background: rgba(250, 246, 241, 0.92);
+  border: 1px solid var(--linen);
+  border-radius: 50%;
+  box-shadow: var(--shadow-deep);
+  backdrop-filter: blur(20px) saturate(180%);
+  transition:
+    transform 0.35s var(--ease),
+    box-shadow 0.4s ease-in-out;
+  animation: float-in 0.4s var(--ease);
+}
+
+.float-entry:hover {
+  transform: translateY(-2px);
+}
+
+.float-entry:active {
+  transform: scale(0.94);
+}
+
+@keyframes float-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* 有人分享了页面：面板顶部一条 */
@@ -2350,6 +2549,39 @@ textarea {
   opacity: 0.7;
 }
 
+/* 手机第一次进房时，指着传送带的引导 */
+.coach {
+  position: fixed;
+  right: 14px;
+  bottom: 92px;
+  left: 14px;
+  z-index: 41;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 14px;
+  font-size: 12.5px;
+  color: var(--earth);
+  background: rgba(250, 246, 241, 0.97);
+  border: 1px solid var(--linen);
+  border-radius: var(--r-tag);
+  box-shadow: var(--shadow-deep);
+  animation: coach-in 0.4s var(--ease);
+}
+
+@keyframes coach-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 底部抽屉：高度跟着手指走，松手吸附到 关闭 / 55vh / 88vh */
 .drawer {
   position: fixed;
   right: 0;
@@ -2358,34 +2590,30 @@ textarea {
   z-index: 39;
   display: flex;
   flex-direction: column;
-  height: 88vh;
   overflow: hidden;
   background: var(--bg);
   border-top: var(--bd);
   border-radius: var(--r-card) var(--r-card) 0 0;
   box-shadow: 0 -8px 40px rgba(92, 64, 51, 0.14);
-  transform: translateY(100%);
-  transition: transform 0.42s var(--ease);
-  touch-action: pan-y;
+  will-change: height;
 }
 
-/* 高度只在两档之间切换，位移交给 transform，避免动画里动 height */
-.drawer[data-level="half"] {
-  height: 55vh;
-  transform: translateY(0);
-}
-
-.drawer[data-level="full"] {
-  height: 88vh;
-  transform: translateY(0);
+.drawer[data-open="false"] {
+  pointer-events: none;
 }
 
 .drawer-handle {
+  position: relative;
   display: grid;
   place-items: center;
   height: 34px;
-  padding-bottom: 26px;
   flex: 0 0 auto;
+  touch-action: none;
+  cursor: grab;
+}
+
+.drawer-handle:active {
+  cursor: grabbing;
 }
 
 .drawer-handle span {
@@ -2394,6 +2622,32 @@ textarea {
   border-radius: 3px;
   background: var(--line);
   opacity: 0.6;
+}
+
+.drawer-close {
+  position: absolute;
+  top: 4px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 24px;
+  color: var(--earth-2);
+  border-radius: 10px;
+}
+
+.drawer-close:hover {
+  background: var(--earth-08);
+  color: var(--earth);
+}
+
+/* 抽屉拉开时，点游戏区域就收回去 */
+.sheet-scrim {
+  position: fixed;
+  inset: 0 0 36px;
+  z-index: 38;
+  background: #2B2420;
+  transition: opacity 0.28s ease-out;
 }
 
 .drawer .panel {

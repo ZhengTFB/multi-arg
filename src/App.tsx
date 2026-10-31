@@ -15,17 +15,17 @@ export default function App() {
       {route.name === 'setup' && <Setup url={route.url} preset={route.preset} />}
       {route.name === 'room' && <Room key={route.id} id={route.id} token={route.token} />}
       {route.name === 'unknown' && (
-        <div className="home">
-          <main className="home-main">
+        <div className="page-center">
+          <div>
             <h1 className="home-title" data-copy="app.notfound">
               {t('app.notfound')}
             </h1>
-            <div>
+            <div style={{ marginTop: 20 }}>
               <Button variant="primary" onClick={() => navigate('/')}>
                 {t('app.home')}
               </Button>
             </div>
-          </main>
+          </div>
         </div>
       )}
       <CopyEditor />

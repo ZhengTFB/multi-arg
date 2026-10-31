@@ -44,6 +44,7 @@ function stopServer() {
 const ONBOARDED = () => {
   try {
     localStorage.setItem('arg:onboarded', 'true')
+    localStorage.setItem('arg:coach', 'true')
   } catch {
     /* 忽略 */
   }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronDown, Send, UserPlus, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, Send, UserPlus, X } from 'lucide-react'
 import type { Item, Member, Room } from '../lib/types'
 import { Segmented } from './ui/Segmented'
 import type { SegItem } from './ui/Segmented'
@@ -30,7 +30,8 @@ interface Props {
   conn: 'ok' | 'off' | null
   unread: Set<string>
   onOpenInvite: () => void
-  onCloseDrawer: () => void
+  /** 收起面板，进入沉浸模式 */
+  onImmersive: () => void
   onOpenLink: (item: Item) => void
   onStar: (item: Item) => void
   onExclude: (item: Item) => void
@@ -71,7 +72,7 @@ export function Panel(props: Props) {
     conn,
     unread,
     onOpenInvite,
-    onCloseDrawer,
+    onImmersive,
     onOpenLink,
     onStar,
     onExclude,
@@ -158,8 +159,11 @@ export function Panel(props: Props) {
   return (
     <div className="panel" data-open={variant === 'drawer' ? true : open}>
       <div className="panel-head">
-        <button type="button" className="panel-room" onClick={onOpenInvite} title="邀请">
-          {room.id}
+        <button type="button" className="panel-room" onClick={onOpenInvite} title={t('room.invite.title')}>
+          <span className="panel-room-label" data-copy="room.room.label">
+            {t('room.room.label')}
+          </span>
+          <span className="panel-room-code">{room.id}</span>
         </button>
         <span className="panel-room-dot">·</span>
         <button
@@ -174,20 +178,32 @@ export function Panel(props: Props) {
         <span className="panel-head-spacer" />
         <button
           type="button"
-          className="icon-btn"
+          className="share-cta"
           aria-label={t('room.rail.sharepage')}
           title={t('room.rail.sharepage')}
           onClick={onSharePage}
         >
-          <Send size={15} strokeWidth={1.5} />
+          <Send size={13} strokeWidth={1.8} />
+          <span data-copy="room.rail.sharepage">{t('room.rail.sharepage')}</span>
         </button>
-        <button type="button" className="invite-entry" onClick={onOpenInvite}>
+        <button
+          type="button"
+          className="invite-entry"
+          onClick={onOpenInvite}
+          title={t('room.invite.title')}
+        >
           <UserPlus size={13} strokeWidth={1.6} />
           <span data-copy="room.invite.entry">{t('room.invite.entry')}</span>
         </button>
-        {variant === 'drawer' && (
-          <button type="button" className="icon-btn" aria-label="收起" onClick={onCloseDrawer}>
-            <X size={15} strokeWidth={1.5} />
+        {variant === 'side' && (
+          <button
+            type="button"
+            className="panel-collapse"
+            aria-label={t('room.immersive')}
+            title={t('room.immersive')}
+            onClick={onImmersive}
+          >
+            <ChevronRight size={14} strokeWidth={1.8} />
           </button>
         )}
       </div>
