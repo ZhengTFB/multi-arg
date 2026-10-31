@@ -1,11 +1,10 @@
 import { useState } from 'react'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, ArrowUpRight } from 'lucide-react'
 import games from '../../games.json'
 import { formatRoomCode, navigate } from '../lib/router'
+import { t } from '../lib/copy'
 import { Input } from '../components/ui/Input'
 import { Button } from '../components/ui/Button'
-
-const COVER_TINTS = ['#8b9d7722', '#d4a37322', '#5c403318', '#e9e0d4']
 
 export function Home() {
   const [value, setValue] = useState('')
@@ -19,7 +18,7 @@ export function Home() {
     const url = value.trim()
     if (!url) return
     if (!/^https?:\/\//i.test(url)) {
-      setError('这不像一个网址。')
+      setError(t('home.err.url'))
       return
     }
     setError('')
@@ -28,7 +27,7 @@ export function Home() {
 
   const openGame = (item: (typeof games.items)[number]) => {
     if (!item.url) {
-      setFlash('这个还没上线。')
+      setFlash(t('home.err.soon'))
       window.setTimeout(() => setFlash(''), 2200)
       return
     }
@@ -42,7 +41,7 @@ export function Home() {
   const joinByCode = () => {
     const digits = code.replace(/\D/g, '')
     if (digits.length !== 8) {
-      setCodeError('房间号和口令，一共 8 位数字。')
+      setCodeError(t('dialog.room.err'))
       return
     }
     setCodeError('')
@@ -52,13 +51,22 @@ export function Home() {
   return (
     <div className="home">
       <header>
-        <a className="wordmark" href="/" onClick={(e) => { e.preventDefault(); navigate('/') }}>
+        <a
+          className="wordmark"
+          href="/"
+          onClick={(e) => {
+            e.preventDefault()
+            navigate('/')
+          }}
+        >
           多人 ARG
         </a>
       </header>
 
       <main className="home-main">
-        <h1 className="home-title">几个人一起玩网页解谜</h1>
+        <h1 className="home-title" data-copy="home.title">
+          {t('home.title')}
+        </h1>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <form
@@ -71,8 +79,8 @@ export function Home() {
             <Input
               tall
               value={value}
-              placeholder="粘贴游戏链接"
-              aria-label="游戏链接"
+              placeholder={t('home.placeholder')}
+              aria-label={t('home.placeholder')}
               onChange={(e) => {
                 setValue(e.target.value)
                 setError('')
@@ -82,7 +90,7 @@ export function Home() {
               type="submit"
               className="paste-go"
               data-empty={!value.trim()}
-              aria-label="继续"
+              aria-label={t('home.enter')}
             >
               <ArrowRight size={18} strokeWidth={1.6} />
             </button>
@@ -92,26 +100,43 @@ export function Home() {
         </div>
 
         <section className="home-reco">
-          <p className="eyebrow">推荐</p>
-          <div className="reco-track">
+          <div className="reco-head">
+            <span className="eyebrow" data-copy="home.reco">
+              {t('home.reco')}
+            </span>
+            <span className="reco-head-line" />
+            <span className="reco-count mono">{String(games.items.length).padStart(2, '0')}</span>
+          </div>
+
+          <div className="reco-grid">
             {games.items.map((item, index) => (
               <button
                 key={item.slug}
                 type="button"
-                className="reco-card"
+                className="poster"
                 data-dead={!item.embeddable}
                 onClick={() => openGame(item)}
               >
-                <span
-                  className="reco-cover"
-                  style={{ background: COVER_TINTS[index % COVER_TINTS.length] }}
-                >
-                  {item.title.slice(0, 1)}
+                <span className="poster-art">
+                  {item.cover ? <img src={item.cover} alt="" loading="lazy" /> : null}
+                  <span className="poster-index mono">{String(index + 1).padStart(2, '0')}</span>
+                  {!item.embeddable && (
+                    <span className="poster-flag" data-copy="home.reco.dead">
+                      {t('home.reco.dead')}
+                    </span>
+                  )}
                 </span>
-                <span className="reco-body">
-                  <span className="reco-title">{item.title}</span>
-                  <span className="reco-meta">
-                    {item.minutes ? `约 ${item.minutes} 分钟` : item.embeddable ? '站内嵌入' : '新窗口打开'}
+                <span className="poster-body">
+                  <span className="poster-title">{item.title}</span>
+                  <span className="poster-meta">
+                    <span>
+                      {item.minutes
+                        ? `约 ${item.minutes} 分钟`
+                        : item.embeddable
+                          ? t('home.reco.embed')
+                          : t('home.reco.dead')}
+                    </span>
+                    <ArrowUpRight size={12} strokeWidth={1.6} />
                   </span>
                 </span>
               </button>
@@ -121,16 +146,23 @@ export function Home() {
       </main>
 
       <footer className="home-foot">
-        <button type="button" className="linkish" onClick={() => setCodeOpen(true)}>
-          有房间号？
+        <button
+          type="button"
+          className="linkish"
+          data-copy="home.roomcode"
+          onClick={() => setCodeOpen(true)}
+        >
+          {t('home.roomcode')}
         </button>
       </footer>
 
       {codeOpen && (
         <div className="scrim" onClick={() => setCodeOpen(false)}>
           <div className="dialog" onClick={(e) => e.stopPropagation()}>
-            <h2>有房间号？</h2>
-            <p className="dialog-sub">房间号和口令，各 4 位数字。</p>
+            <h2 data-copy="dialog.room.title">{t('dialog.room.title')}</h2>
+            <p className="dialog-sub" data-copy="dialog.room.sub">
+              {t('dialog.room.sub')}
+            </p>
             <div className="dialog-body">
               <input
                 className="input mono"
@@ -138,8 +170,8 @@ export function Home() {
                 value={code}
                 inputMode="numeric"
                 autoFocus
-                placeholder="8472 3165"
-                aria-label="房间号和口令"
+                placeholder={t('dialog.room.placeholder')}
+                aria-label={t('dialog.room.title')}
                 onChange={(e) => {
                   setCode(formatRoomCode(e.target.value))
                   setCodeError('')
@@ -151,11 +183,11 @@ export function Home() {
               {codeError && <p className="notice">{codeError}</p>}
             </div>
             <div className="dialog-actions">
-              <Button variant="ghost" onClick={() => setCodeOpen(false)}>
-                取消
+              <Button variant="ghost" data-copy="dialog.cancel" onClick={() => setCodeOpen(false)}>
+                {t('dialog.cancel')}
               </Button>
-              <Button variant="primary" onClick={joinByCode}>
-                进入
+              <Button variant="primary" data-copy="dialog.enter" onClick={joinByCode}>
+                {t('dialog.enter')}
               </Button>
             </div>
           </div>

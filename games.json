@@ -1,11 +1,11 @@
-{
+﻿{
   "items": [
     {
       "slug": "lingyi-forum",
       "title": "关于灵异论坛的调查记录",
       "author": "",
       "url": "https://mminghuo.github.io/forum/",
-      "cover": "",
+      "cover": "/covers/lingyi-forum.jpg",
       "minutes": null,
       "hasSearch": false,
       "searchParam": "",
@@ -17,7 +17,7 @@
       "title": "比邻论坛",
       "author": "",
       "url": "https://anninganya-glitch.github.io/My-Secret-Garden/",
-      "cover": "",
+      "cover": "/covers/bilin-forum.jpg",
       "minutes": null,
       "hasSearch": false,
       "searchParam": "",
@@ -29,7 +29,7 @@
       "title": "非自愿摄入",
       "author": "",
       "url": "https://contemporary.minis.yoroll.ai/",
-      "cover": "",
+      "cover": "/covers/involuntary-appetite.jpg",
       "minutes": null,
       "hasSearch": false,
       "searchParam": "",
@@ -41,7 +41,7 @@
       "title": "背影全家福合集",
       "author": "",
       "url": "https://mp.weixin.qq.com/mp/homepage?__biz=MzYzMjA5MDc2MA%3D%3D&hid=6&sn=e36b7430f1a848019e2e0fc9e8701f7a&scene=305",
-      "cover": "",
+      "cover": "/covers/wechat-collection.jpg",
       "minutes": null,
       "hasSearch": false,
       "searchParam": "",

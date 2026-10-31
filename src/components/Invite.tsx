@@ -3,6 +3,7 @@ import QRCode from 'qrcode'
 import { Share2, X } from 'lucide-react'
 import type { Room } from '../lib/types'
 import { Button } from './ui/Button'
+import { t } from '../lib/copy'
 
 interface Props {
   room: Room
@@ -47,7 +48,7 @@ export function Invite({ room, token, open, onClose }: Props) {
       setCopied(true)
       window.setTimeout(() => setCopied(false), 2000)
     } catch {
-      /* 非安全上下文下剪贴板不可用，用户还能手动选房间号 */
+      /* 非安全上下文下剪贴板不可用，用户还能手动报房间号 */
     }
   }
 
@@ -57,10 +58,12 @@ export function Invite({ room, token, open, onClose }: Props) {
         <X size={14} strokeWidth={1.5} />
       </button>
 
-      <p className="eyebrow">邀请</p>
+      <p className="eyebrow" data-copy="room.invite.title">
+        {t('room.invite.title')}
+      </p>
       <p className="invite-room">{room.id}</p>
       <p className="invite-pass">
-        口令 <b>{room.pass}</b>
+        <span data-copy="room.invite.pass">{t('room.invite.pass')}</span> <b>{room.pass}</b>
       </p>
 
       <div className="qr" aria-label="进房二维码">
@@ -73,7 +76,7 @@ export function Invite({ room, token, open, onClose }: Props) {
 
       <div className="invite-actions">
         <Button variant="secondary" block onClick={copy}>
-          {copied ? '已复制' : '复制链接'}
+          <span data-copy="room.invite.copy">{copied ? t('room.invite.copied') : t('room.invite.copy')}</span>
         </Button>
         {canShare && (
           <Button
@@ -84,7 +87,7 @@ export function Invite({ room, token, open, onClose }: Props) {
             }}
           >
             <Share2 size={14} strokeWidth={1.5} />
-            隔空投送
+            <span data-copy="room.invite.airdrop">{t('room.invite.airdrop')}</span>
           </Button>
         )}
       </div>

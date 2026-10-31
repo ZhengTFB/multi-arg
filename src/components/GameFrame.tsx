@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft } from 'lucide-react'
 import { FRAME_H, FRAME_W, computeScale } from '../lib/fit'
+import { t } from '../lib/copy'
 
 interface Props {
   src: string
@@ -42,7 +43,7 @@ export function GameFrame({ src, phone, backVisible = false, onBack }: Props) {
           {backVisible && (
             <button type="button" className="back-pill" onClick={onBack}>
               <ArrowLeft size={13} strokeWidth={1.8} />
-              回到刚才那页
+              {t('room.back')}
             </button>
           )}
         </div>

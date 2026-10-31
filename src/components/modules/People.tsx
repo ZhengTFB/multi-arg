@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import dagre from 'dagre'
 import type { Item, Member } from '../../lib/types'
 import { initial } from '../../lib/color'
+import { t } from '../../lib/copy'
 
 interface Props {
   items: Item[]
@@ -76,7 +77,7 @@ export function People({ items, members }: Props) {
   if (nodes.length === 0) {
     return (
       <div className="module">
-        <p className="feed-empty">加第一个人。</p>
+        <p className="feed-empty">{t('people.empty')}</p>
       </div>
     )
   }

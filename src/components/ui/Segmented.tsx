@@ -1,6 +1,7 @@
 export interface SegItem {
   key: string
   label: string
+  copyKey?: string
 }
 
 interface Props {
@@ -19,6 +20,7 @@ export function Segmented({ items, value, onChange }: Props) {
           role="tab"
           aria-selected={value === item.key}
           className="seg"
+          data-copy={item.copyKey}
           onClick={() => onChange(item.key)}
         >
           {item.label}

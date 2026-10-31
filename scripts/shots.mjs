@@ -62,13 +62,13 @@ async function main() {
       locale: 'zh-CN',
     })
     const page = await desktop.newPage()
-    await page.goto(`${BASE}/`, { waitUntil: 'networkidle' })
+    await page.goto(`${BASE}/?shot=1`, { waitUntil: 'networkidle' })
     await page.waitForTimeout(400)
     await page.screenshot({ path: path.join(OUT, 'home.png') })
     console.log('home.png')
 
     await page.goto(
-      `${BASE}/setup?u=${encodeURIComponent('https://mminghuo.github.io/forum/')}&preset=lingyi-forum`,
+      `${BASE}/setup?u=${encodeURIComponent('https://mminghuo.github.io/forum/')}&preset=lingyi-forum&shot=1`,
       { waitUntil: 'networkidle' },
     )
     await page.setViewportSize({ width: 1180, height: 820 })
@@ -85,7 +85,7 @@ async function main() {
     })
     await pad.addInitScript(ONBOARDED)
     const padPage = await pad.newPage()
-    await padPage.goto(`${BASE}/r/8472#demo`, { waitUntil: 'networkidle' })
+    await padPage.goto(`${BASE}/r/8472?shot=1#demo`, { waitUntil: 'networkidle' })
     await padPage.waitForTimeout(900)
     // 右边缘划一下 → 图标浮出 → 点「流」展开面板
     await padPage.locator('.seam-zone').click({ position: { x: 12, y: 400 } })
@@ -104,7 +104,7 @@ async function main() {
     })
     await phone.addInitScript(ONBOARDED)
     const phonePage = await phone.newPage()
-    await phonePage.goto(`${BASE}/r/8472#demo`, { waitUntil: 'networkidle' })
+    await phonePage.goto(`${BASE}/r/8472?shot=1#demo`, { waitUntil: 'networkidle' })
     await phonePage.waitForTimeout(900)
     await phonePage.locator('.conveyor').click()
     await phonePage.waitForTimeout(700)

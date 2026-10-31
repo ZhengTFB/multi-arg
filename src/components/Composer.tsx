@@ -1,13 +1,15 @@
 import { useRef, useState } from 'react'
 import { ArrowUp } from 'lucide-react'
+import { t } from '../lib/copy'
 
 interface Props {
   onSend: (text: string) => void
   disabled?: boolean
-  autoFocus?: boolean
+  /** 切到模块视图时只隐藏，不卸载，草稿不会丢。 */
+  hidden?: boolean
 }
 
-export function Composer({ onSend, disabled = false, autoFocus = false }: Props) {
+export function Composer({ onSend, disabled = false, hidden = false }: Props) {
   const [text, setText] = useState('')
   const ref = useRef<HTMLTextAreaElement>(null)
 
@@ -31,25 +33,20 @@ export function Composer({ onSend, disabled = false, autoFocus = false }: Props)
   }
 
   return (
-    <div className="composer">
-      <p className="composer-hint">词 xxx = 命中 · 密 账号 / 密码 / 用途</p>
+    <div className="composer" data-hidden={hidden}>
       <div className="composer-box">
         <textarea
           ref={ref}
           data-composer
           rows={1}
-          autoFocus={autoFocus}
           value={text}
-          placeholder="说点什么…"
+          placeholder={t('room.composer.placeholder')}
           disabled={disabled}
           onChange={(e) => {
             setText(e.target.value)
             resize()
           }}
-          onFocus={() => {
-            const el = ref.current
-            if (el && !text) el.style.height = '44px'
-          }}
+          onFocus={resize}
           onBlur={resize}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
@@ -61,13 +58,16 @@ export function Composer({ onSend, disabled = false, autoFocus = false }: Props)
         <button
           type="button"
           className="send-btn"
-          aria-label="发出去"
+          aria-label={t('room.composer.send')}
           disabled={disabled || !text.trim()}
           onClick={submit}
         >
-          <ArrowUp size={15} strokeWidth={2} />
+          <ArrowUp size={16} strokeWidth={2} />
         </button>
       </div>
+      <p className="composer-hint" data-copy="room.composer.hint">
+        {t('room.composer.hint')}
+      </p>
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import type { Item, Member } from '../../lib/types'
+import { t } from '../../lib/copy'
 
 interface Props {
   items: Item[]
@@ -14,7 +15,7 @@ export function Timeline({ items, members }: Props) {
   if (list.length === 0) {
     return (
       <div className="module">
-        <p className="feed-empty">把时间点记下来，后面会用到。</p>
+        <p className="feed-empty">{t('timeline.empty')}</p>
       </div>
     )
   }

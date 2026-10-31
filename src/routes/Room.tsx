@@ -3,6 +3,7 @@ import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { Item, ModuleKey } from '../lib/types'
 import { mockItems, mockMembers, mockRoom, MOCK_ME } from '../lib/mock'
 import { load, save, has } from '../lib/storage'
+import { t } from '../lib/copy'
 import { GameFrame } from '../components/GameFrame'
 import { EdgeRail } from '../components/EdgeRail'
 import type { RailAction } from '../components/EdgeRail'
@@ -96,7 +97,7 @@ export function Room({ id, token }: Props) {
         setRailOpen(false)
       }, 2500),
       window.setTimeout(() => {
-        setHint(phone ? '往上滑，能看到大家发的东西。' : '从右边划一下，能看到大家发的东西。')
+        setHint(phone ? t('room.onboard.phone') : t('room.onboard.desktop'))
       }, 1000),
       window.setTimeout(() => setHintLeaving(true), 6000),
       window.setTimeout(() => setHint(null), 6700),

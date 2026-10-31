@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { Item } from '../../lib/types'
+import { t } from '../../lib/copy'
 
 interface Props {
   items: Item[]
@@ -40,7 +41,7 @@ export function Keywords({ items, onAdd, onToggleResult }: Props) {
       <div className="kw-add">
         <input
           value={draft}
-          placeholder="词 = 命中"
+          placeholder={t('keyword.placeholder')}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.nativeEvent.isComposing) commit()
@@ -59,15 +60,11 @@ export function Keywords({ items, onAdd, onToggleResult }: Props) {
               title="点一下换结果"
               onClick={() => onToggleResult(item)}
             >
-              {item.result === 'hit' ? '命中' : '未命中'}
+              {item.result === 'hit' ? t('keyword.hit') : t('keyword.miss')}
             </button>
           </div>
         ))}
-        {list.length === 0 && (
-          <p className="feed-empty">
-            还没有记录。试试 <span className="mono">符咒 = 命中</span>。
-          </p>
-        )}
+        {list.length === 0 && <p className="feed-empty">{t('keyword.empty')}</p>}
       </div>
     </div>
   )

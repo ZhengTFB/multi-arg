@@ -1,6 +1,7 @@
 import { Star } from 'lucide-react'
 import type { Member } from '../lib/types'
 import { initial } from '../lib/color'
+import { t } from '../lib/copy'
 
 interface Props {
   members: Member[]
@@ -19,23 +20,25 @@ export function MemberBar({ members, meId, filter, starOnly, unread, onFilter, o
         type="button"
         className="chip"
         aria-pressed={!starOnly && filter === 'all'}
+        data-copy="room.members.all"
         onClick={() => {
           onStarOnly(false)
           onFilter('all')
         }}
       >
-        全部
+        {t('room.members.all')}
       </button>
       <button
         type="button"
         className="chip"
         aria-pressed={!starOnly && filter === 'me'}
+        data-copy="room.members.me"
         onClick={() => {
           onStarOnly(false)
           onFilter('me')
         }}
       >
-        我
+        {t('room.members.me')}
       </button>
       {members.map((member) => (
         <button

@@ -1,4 +1,5 @@
 import { Search } from 'lucide-react'
+import { t } from '../lib/copy'
 
 interface Props {
   value: string
@@ -28,20 +29,21 @@ export function SearchBar({
           <input
             data-search-input
             value={value}
-            placeholder="搜点什么"
+            placeholder={t('room.search')}
             onChange={(e) => onChange(e.target.value)}
-            aria-label="搜索"
+            aria-label={t('room.search')}
           />
         </label>
         <button
           type="button"
           className="tag tag--miss"
-          title="存成关键词"
+          title={t('room.search.save')}
+          data-copy="room.search.save"
           disabled={!q}
           style={{ opacity: q ? 1 : 0.55 }}
           onClick={() => onSaveKeyword(q)}
         >
-          词
+          {t('room.search.save')}
         </button>
       </div>
 
@@ -49,19 +51,22 @@ export function SearchBar({
         <div className="search-sug">
           <button type="button" className="sug-row" onClick={() => onSearchInGame(q)}>
             <span>
-              在游戏里搜「<b>{q}</b>」
+              {t('room.search.ingame')}「<b>{q}</b>」
             </span>
           </button>
           <div className="sug-row">
-            <span>我们记过 {localCount} 条</span>
+            <span>
+              {t('room.search.count')} {localCount} 条
+            </span>
             {localCount > 0 && (
               <button
                 type="button"
                 className="tag tag--hit"
+                data-copy="room.search.share"
                 onClick={() => onShareResult(q)}
-                title="把这一页发给大家"
+                title={t('room.search.share')}
               >
-                发给大家
+                {t('room.search.share')}
               </button>
             )}
           </div>

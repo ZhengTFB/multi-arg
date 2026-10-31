@@ -13,6 +13,7 @@ import { Secrets } from './modules/Secrets'
 import { Timeline } from './modules/Timeline'
 import { initial } from '../lib/color'
 import { ago } from '../lib/time'
+import { t } from '../lib/copy'
 
 export type View = 'feed' | 'note' | 'people' | 'keyword' | 'secret' | 'timeline'
 
@@ -80,12 +81,17 @@ export function Panel(props: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const lastCount = useRef(-1)
 
-  const segs: SegItem[] = [{ key: 'feed', label: '流' }]
-  if (room.modules.includes('note')) segs.push({ key: 'note', label: '笔记' })
-  if (room.modules.includes('person')) segs.push({ key: 'people', label: '图' })
-  if (room.modules.includes('keyword')) segs.push({ key: 'keyword', label: '词' })
-  if (room.modules.includes('secret')) segs.push({ key: 'secret', label: '密' })
-  if (room.modules.includes('timeline')) segs.push({ key: 'timeline', label: '时' })
+  const segs: SegItem[] = [{ key: 'feed', label: t('tabs.feed'), copyKey: 'tabs.feed' }]
+  if (room.modules.includes('note'))
+    segs.push({ key: 'note', label: t('tabs.note'), copyKey: 'tabs.note' })
+  if (room.modules.includes('person'))
+    segs.push({ key: 'people', label: t('tabs.people'), copyKey: 'tabs.people' })
+  if (room.modules.includes('keyword'))
+    segs.push({ key: 'keyword', label: t('tabs.keyword'), copyKey: 'tabs.keyword' })
+  if (room.modules.includes('secret'))
+    segs.push({ key: 'secret', label: t('tabs.secret'), copyKey: 'tabs.secret' })
+  if (room.modules.includes('timeline'))
+    segs.push({ key: 'timeline', label: t('tabs.timeline'), copyKey: 'tabs.timeline' })
 
   const q = query.trim().toLowerCase()
   const localCount = useMemo(() => {
@@ -161,7 +167,11 @@ export function Panel(props: Props) {
         )}
       </div>
 
-      {conn && <div className="connbar" data-state={conn}>{conn === 'off' ? '连接断了，正在重连' : '已连上'}</div>}
+      {conn && (
+        <div className="connbar" data-state={conn}>
+          {conn === 'off' ? t('room.conn.off') : t('room.conn.ok')}
+        </div>
+      )}
 
       <Segmented items={segs} value={view} onChange={(k) => onView(k as View)} />
 
@@ -213,7 +223,7 @@ export function Panel(props: Props) {
           {view === 'timeline' && <Timeline items={items} members={members} />}
         </div>
 
-        {(view === 'feed' || view === 'note') && <Composer onSend={onSend} />}
+        <Composer onSend={onSend} hidden={view !== 'feed' && view !== 'note'} />
       </div>
 
       {membersOpen && (
@@ -231,12 +241,14 @@ export function Panel(props: Props) {
                       {m.name}
                       {m.id === me.id && (
                         <span className="muted" style={{ fontSize: 10 }}>
-                          你
+                          {t('room.members.you')}
                         </span>
                       )}
                     </div>
                     <div className="member-sub">
-                      {live ? `正在看《${m.current!.title}》` : `最后活跃 ${ago(m.lastSeen)}`}
+                      {live
+                        ? `${t('room.members.live')}《${m.current!.title}》`
+                        : `${t('room.members.ago')} ${ago(m.lastSeen)}`}
                     </div>
                   </div>
                 </div>
@@ -247,12 +259,13 @@ export function Panel(props: Props) {
             <button
               type="button"
               className="linkish"
+              data-copy="room.members.replay"
               onClick={() => {
                 setMembersOpen(false)
                 onReplayOnboarding()
               }}
             >
-              重看引导
+              {t('room.members.replay')}
             </button>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Check, Circle, Eye, EyeOff } from 'lucide-react'
 import type { Item } from '../../lib/types'
+import { t } from '../../lib/copy'
 
 interface Props {
   items: Item[]
@@ -23,9 +24,7 @@ export function Secrets({ items, onToggleVerify }: Props) {
   if (list.length === 0) {
     return (
       <div className="module">
-        <p className="feed-empty">
-          还没有记过。试试 <span className="mono">密 账号 / 密码 / 用途</span>。
-        </p>
+        <p className="feed-empty">{t('secret.empty')}</p>
       </div>
     )
   }
@@ -39,7 +38,7 @@ export function Secrets({ items, onToggleVerify }: Props) {
           <div key={item.id} className="secret-card">
             <div className="secret-top">
               <span className="secret-account">{secret.account}</span>
-              {secret.verified && <span className="tag tag--hit">已验证</span>}
+              {secret.verified && <span className="tag tag--hit">{t('secret.verified')}</span>}
             </div>
 
             <div className="secret-pass">
@@ -69,7 +68,7 @@ export function Secrets({ items, onToggleVerify }: Props) {
                 ) : (
                   <Circle size={11} strokeWidth={1.5} />
                 )}
-                {secret.verified ? '已验证' : '还没试过'}
+                {secret.verified ? t('secret.verified') : t('secret.unverified')}
               </button>
             </div>
           </div>
