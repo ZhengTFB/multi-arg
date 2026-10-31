@@ -1,0 +1,21 @@
+# 依赖与构建产物
+node_modules/
+dist/
+build/
+.wrangler/
+.cache/
+.dev.vars.tmp
+
+# 环境变量 / 密钥（含 Cloudflare API Token 与 PROXY_SECRET，绝不能提交）
+.dev.vars
+.dev.vars.*
+.env
+.env.*
+!.env.example
+
+# 编辑器与系统
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log

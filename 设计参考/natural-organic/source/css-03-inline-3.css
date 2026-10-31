@@ -1,0 +1,27 @@
+@keyframes organic-sway { 
+  0%, 100% { transform: rotate(-2deg) translateY(0px); }
+  50% { transform: rotate(2deg) translateY(-6px); }
+}
+@keyframes organic-rise { 
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+@keyframes organic-breathe { 
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.05); opacity: 1; }
+}
+@keyframes organic-drift { 
+  0% { transform: translateX(0px) rotate(0deg); }
+  33% { transform: translateX(8px) rotate(1.5deg); }
+  66% { transform: translateX(-4px) rotate(-1deg); }
+  100% { transform: translateX(0px) rotate(0deg); }
+}
+@keyframes petal-spin { 
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.sway-anim { animation: 6s ease-in-out 0s infinite normal none running organic-sway; }
+.rise-anim { animation: 5s ease-in-out 0s infinite normal none running organic-rise; }
+.breathe-anim { animation: 4s ease-in-out 0s infinite normal none running organic-breathe; }
+.drift-anim { animation: 8s ease-in-out 0s infinite normal none running organic-drift; }
+.petal-spin-anim { animation: 20s linear 0s infinite normal none running petal-spin; }
