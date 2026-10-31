@@ -1,0 +1,55 @@
+/* 取值全部来自 设计参考/natural-organic/source/recipes.md 与 page.html，不新增数值。 */
+:root {
+  /* 底色与纸感 */
+  --bg: #FAF6F1;
+  --surface: #FFFFFF;
+  --linen: #E9E0D4;
+  --line: #C4B5A5;
+
+  /* 大地色 */
+  --earth: #5C4033;
+  --earth-2: #7A6658;
+  --sage: #8B9D77;
+  --sage-deep: #5A6E48;
+  --sage-dark: #4A5E38;
+  --honey: #D4A373;
+  --honey-deep: #8A6030;
+  --clay: #B07050;
+  --clay-deep: #8B5A3A;
+  --moss: #75A191;
+  --ink: #2B2420;
+
+  /* 透明层，全部由上面几色加 alpha 得到 */
+  --earth-08: #5C403318;
+  --earth-16: #5C40332B;
+  --earth-27: #5C403344;
+  --sage-09: #8B9D7718;
+  --sage-19: #8B9D7730;
+  --sage-27: #8B9D7744;
+  --honey-09: #D4A37318;
+  --honey-13: #D4A37322;
+  --honey-27: #D4A37344;
+
+  /* 圆角档位：成对的不等角 */
+  --r-btn-sm: 22px 26px 20px 24px / 20px 22px 26px 22px;
+  --r-btn-lg: 24px 30px 24px 18px / 20px 24px 28px 24px;
+  --r-card: 40px 50px 40px 50px / 50px 40px 50px 40px;
+  --r-card-sm: 16px 18px 14px 16px / 14px 16px 18px 16px;
+  --r-card-xs: 12px 14px 12px 10px / 10px 12px 14px 12px;
+  --r-tag: 20px 24px 18px 22px / 22px 18px 24px 20px;
+
+  /* 边框与阴影 */
+  --bd: 1px solid #E9E0D4;
+  --bd-line: 1.5px solid #C4B5A5;
+  --shadow-soft: 0 4px 16px #5C403344;
+  --shadow-deep: 0 6px 16px rgba(92, 64, 51, 0.3);
+
+  /* 字体 */
+  --font-display: "Songti SC", "Noto Serif SC", Georgia, "STSong", serif;
+  --font-body: -apple-system, "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
+  --font-num: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* 缓动 */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-seam: cubic-bezier(0.32, 0.72, 0, 1);
+}

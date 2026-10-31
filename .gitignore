@@ -19,3 +19,6 @@ Thumbs.db
 .idea/
 .vscode/
 *.log
+
+# 工具生成的集成规则与缓存，不进仓库
+.codebuddy/
