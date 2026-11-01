@@ -1,4 +1,4 @@
-import { DatabaseSync } from 'node:sqlite'
+import { createClient } from '@libsql/client'
 import { mkdirSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -8,24 +8,27 @@ const DATA_DIR = process.env.ARG_DATA_DIR || path.join(ROOT, '.data')
 
 mkdirSync(DATA_DIR, { recursive: true })
 
-export const db = new DatabaseSync(path.join(DATA_DIR, 'arg.db'))
+const fileUrl = `file:${path.join(DATA_DIR, 'arg.db').replace(/\\/g, '/')}`
+// 两个变量都齐了才连 Turso，缺一个就退回本地文件，免得线上因为少了 token 起不来
+const useTurso = Boolean(process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN)
+const url = useTurso ? process.env.TURSO_DATABASE_URL : fileUrl
+const authToken = useTurso ? process.env.TURSO_AUTH_TOKEN : undefined
 
-db.exec(`
-  PRAGMA journal_mode = WAL;
-  PRAGMA foreign_keys = ON;
+export const db = createClient(authToken ? { url, authToken } : { url })
+export const dbKind = useTurso ? 'turso' : 'local-sqlite'
 
-  CREATE TABLE IF NOT EXISTS rooms (
+const SCHEMA = [
+  `CREATE TABLE IF NOT EXISTS rooms (
     id TEXT PRIMARY KEY,
     game_url TEXT NOT NULL,
     title TEXT NOT NULL,
     modules TEXT NOT NULL,
     created_at INTEGER NOT NULL,
     expires_at INTEGER NOT NULL
-  );
-
-  CREATE TABLE IF NOT EXISTS members (
+  )`,
+  `CREATE TABLE IF NOT EXISTS members (
     id TEXT PRIMARY KEY,
-    room_id TEXT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+    room_id TEXT NOT NULL,
     name TEXT NOT NULL,
     color TEXT NOT NULL,
     created_at INTEGER NOT NULL,
@@ -33,11 +36,10 @@ db.exec(`
     current_title TEXT,
     current_url TEXT,
     current_at INTEGER
-  );
-
-  CREATE TABLE IF NOT EXISTS items (
+  )`,
+  `CREATE TABLE IF NOT EXISTS items (
     id TEXT PRIMARY KEY,
-    room_id TEXT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+    room_id TEXT NOT NULL,
     author_id TEXT NOT NULL,
     type TEXT NOT NULL,
     created_at INTEGER NOT NULL,
@@ -45,40 +47,77 @@ db.exec(`
     status TEXT NOT NULL DEFAULT 'open',
     ref_id TEXT,
     data TEXT NOT NULL
-  );
+  )`,
+  'CREATE INDEX IF NOT EXISTS idx_items_room ON items(room_id, created_at)',
+  'CREATE INDEX IF NOT EXISTS idx_members_room ON members(room_id, last_seen)',
+]
 
-  CREATE INDEX IF NOT EXISTS idx_items_room ON items(room_id, created_at);
-  CREATE INDEX IF NOT EXISTS idx_members_room ON members(room_id, last_seen);
-`)
+export async function initDb() {
+  await db.batch(SCHEMA, 'write')
+}
 
 /** 文档 02 §8：7 天到期只读、第 37 天清空 */
 export const DAY = 24 * 60 * 60 * 1000
 
+const one = async (sql, args = []) => {
+  const res = await db.execute({ sql, args })
+  return res.rows[0] ?? null
+}
+
+const all = async (sql, args = []) => {
+  const res = await db.execute({ sql, args })
+  return res.rows
+}
+
 export const q = {
-  roomById: db.prepare('SELECT * FROM rooms WHERE id = ?'),
-  roomByTitle: db.prepare('SELECT id FROM rooms WHERE game_url = ? AND created_at > ?'),
-  insertRoom: db.prepare(
-    'INSERT INTO rooms (id, game_url, title, modules, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)',
-  ),
-  deleteRoom: db.prepare('DELETE FROM rooms WHERE id = ?'),
-  expiredRooms: db.prepare('SELECT id FROM rooms WHERE created_at < ?'),
+  roomById: (id) => one('SELECT * FROM rooms WHERE id = ?', [id]),
+  insertRoom: (room) =>
+    db.execute({
+      sql: 'INSERT INTO rooms (id, game_url, title, modules, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)',
+      args: [room.id, room.game_url, room.title, room.modules, room.created_at, room.expires_at],
+    }),
+  deleteRoom: (id) => db.execute({ sql: 'DELETE FROM rooms WHERE id = ?', args: [id] }),
+  expiredRooms: (cutoff) => all('SELECT id FROM rooms WHERE created_at < ?', [cutoff]),
 
-  memberById: db.prepare('SELECT * FROM members WHERE id = ?'),
-  membersByRoom: db.prepare('SELECT * FROM members WHERE room_id = ? ORDER BY created_at ASC'),
-  insertMember: db.prepare(
-    'INSERT INTO members (id, room_id, name, color, created_at, last_seen) VALUES (?, ?, ?, ?, ?, ?)',
-  ),
-  touchMember: db.prepare('UPDATE members SET last_seen = ? WHERE id = ?'),
-  setPresence: db.prepare(
-    'UPDATE members SET last_seen = ?, current_title = ?, current_url = ?, current_at = ? WHERE id = ?',
-  ),
+  memberById: (id) => one('SELECT * FROM members WHERE id = ?', [id]),
+  membersByRoom: (roomId) =>
+    all('SELECT * FROM members WHERE room_id = ? ORDER BY created_at ASC', [roomId]),
+  insertMember: (m) =>
+    db.execute({
+      sql: 'INSERT INTO members (id, room_id, name, color, created_at, last_seen) VALUES (?, ?, ?, ?, ?, ?)',
+      args: [m.id, m.room_id, m.name, m.color, m.created_at, m.last_seen],
+    }),
+  touchMember: (at, id) =>
+    db.execute({ sql: 'UPDATE members SET last_seen = ? WHERE id = ?', args: [at, id] }),
+  setPresence: (at, title, url, id) =>
+    db.execute({
+      sql: 'UPDATE members SET last_seen = ?, current_title = ?, current_url = ?, current_at = ? WHERE id = ?',
+      args: [at, title, url, at, id],
+    }),
 
-  itemsByRoom: db.prepare('SELECT * FROM items WHERE room_id = ? ORDER BY created_at ASC'),
-  itemById: db.prepare('SELECT * FROM items WHERE id = ?'),
-  insertItem: db.prepare(
-    'INSERT INTO items (id, room_id, author_id, type, created_at, starred, status, ref_id, data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-  ),
-  updateItem: db.prepare('UPDATE items SET starred = ?, status = ?, data = ? WHERE id = ?'),
+  itemsByRoom: (roomId) =>
+    all('SELECT * FROM items WHERE room_id = ? ORDER BY created_at ASC', [roomId]),
+  itemById: (id) => one('SELECT * FROM items WHERE id = ?', [id]),
+  insertItem: (item) =>
+    db.execute({
+      sql: 'INSERT INTO items (id, room_id, author_id, type, created_at, starred, status, ref_id, data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      args: [
+        item.id,
+        item.room_id,
+        item.author_id,
+        item.type,
+        item.created_at,
+        item.starred,
+        item.status,
+        item.ref_id,
+        item.data,
+      ],
+    }),
+  updateItem: (item) =>
+    db.execute({
+      sql: 'UPDATE items SET starred = ?, status = ?, data = ? WHERE id = ?',
+      args: [item.starred, item.status, item.data, item.id],
+    }),
 }
 
 export function rowToItem(row) {
@@ -88,8 +127,8 @@ export function rowToItem(row) {
     id: row.id,
     authorId: row.author_id,
     type: row.type,
-    createdAt: row.created_at,
-    starred: !!row.starred,
+    createdAt: Number(row.created_at),
+    starred: !!Number(row.starred),
     status: row.status,
     ...(row.ref_id ? { refId: row.ref_id } : {}),
   }
@@ -100,11 +139,14 @@ export function rowToMember(row) {
     id: row.id,
     name: row.name,
     color: row.color,
-    joinedAt: row.created_at,
-    lastSeen: row.last_seen,
+    joinedAt: Number(row.created_at),
+    lastSeen: Number(row.last_seen),
   }
   if (row.current_at && row.current_title) {
-    return { ...base, current: { title: row.current_title, url: row.current_url, at: row.current_at } }
+    return {
+      ...base,
+      current: { title: row.current_title, url: row.current_url ?? '', at: Number(row.current_at) },
+    }
   }
   return base
 }
@@ -128,15 +170,14 @@ export function rowToRoom(row) {
       searchParam: 'q',
     },
     modules: JSON.parse(row.modules),
-    createdAt: row.created_at,
-    expiresAt: row.expires_at,
-    readOnly: Date.now() - row.created_at > 7 * DAY,
+    createdAt: Number(row.created_at),
+    expiresAt: Number(row.expires_at),
+    readOnly: Date.now() - Number(row.created_at) > 7 * DAY,
   }
 }
 
 const PURGE = 37 * DAY
-export function purgeExpired() {
-  for (const row of q.expiredRooms.all(Date.now() - PURGE)) {
-    q.deleteRoom.run(row.id)
-  }
+export async function purgeExpired() {
+  const rows = await q.expiredRooms(Date.now() - PURGE)
+  for (const row of rows) await q.deleteRoom(row.id)
 }

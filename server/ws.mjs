@@ -17,11 +17,14 @@ function broadcast(roomId, payload, except) {
   }
 }
 
-function roomState(roomId) {
+async function roomState(roomId) {
+  const room = await q.roomById(roomId)
+  const members = await q.membersByRoom(roomId)
+  const items = await q.itemsByRoom(roomId)
   return {
-    room: rowToRoom(q.roomById.get(roomId)),
-    members: q.membersByRoom.all(roomId).map(rowToMember),
-    items: q.itemsByRoom.all(roomId).map(rowToItem),
+    room: rowToRoom(room),
+    members: members.map(rowToMember),
+    items: items.map(rowToItem),
   }
 }
 
@@ -45,13 +48,13 @@ const writable = new Set([
 export function attachWs(server) {
   const wss = new WebSocketServer({ server, path: '/ws' })
 
-  wss.on('connection', (ws, req) => {
+  wss.on('connection', async (ws, req) => {
     const url = new URL(req.url ?? '/ws', 'http://localhost')
     const roomId = url.searchParams.get('room') ?? ''
     const memberId = url.searchParams.get('member') ?? ''
 
-    const room = q.roomById.get(roomId)
-    const member = q.memberById.get(memberId)
+    const room = await q.roomById(roomId)
+    const member = await q.memberById(memberId)
     if (!room || !member || member.room_id !== roomId) {
       ws.close(4004, 'not found')
       return
@@ -65,11 +68,14 @@ export function attachWs(server) {
     set.add(ws)
     rooms.set(roomId, set)
 
-    const now = Date.now()
-    q.touchMember.run(now, memberId)
+    await q.touchMember(Date.now(), memberId)
 
-    send(ws, { t: 'snapshot', ...roomState(roomId) })
-    broadcast(roomId, { t: 'member.update', member: rowToMember(q.memberById.get(memberId)) }, ws)
+    send(ws, { t: 'snapshot', ...(await roomState(roomId)) })
+    broadcast(
+      roomId,
+      { t: 'member.update', member: rowToMember(await q.memberById(memberId)) },
+      ws,
+    )
 
     ws.on('pong', () => {
       ws.isAlive = true
@@ -82,7 +88,9 @@ export function attachWs(server) {
       } catch {
         return
       }
-      handle(ws, msg, roomId, memberId)
+      handle(ws, msg, roomId, memberId).catch(() => {
+        send(ws, { t: 'error', code: 'server' })
+      })
     })
 
     ws.on('close', () => {
@@ -90,7 +98,7 @@ export function attachWs(server) {
       if (!current) return
       current.delete(ws)
       if (!current.size) rooms.delete(roomId)
-      q.touchMember.run(Date.now(), memberId)
+      q.touchMember(Date.now(), memberId).catch(() => {})
     })
 
     ws.on('error', () => {
@@ -114,11 +122,11 @@ export function attachWs(server) {
   return wss
 }
 
-function handle(ws, msg, roomId, memberId) {
-  const room = q.roomById.get(roomId)
+async function handle(ws, msg, roomId, memberId) {
+  const room = await q.roomById(roomId)
   if (!room) return
 
-  const readOnly = Date.now() - room.created_at > 7 * DAY
+  const readOnly = Date.now() - Number(room.created_at) > 7 * DAY
 
   if (msg.t === 'ping') {
     send(ws, { t: 'pong' })
@@ -129,8 +137,11 @@ function handle(ws, msg, roomId, memberId) {
     const now = Date.now()
     const title = typeof msg.title === 'string' ? msg.title.slice(0, 80) : null
     const url = typeof msg.url === 'string' ? msg.url.slice(0, 500) : null
-    q.setPresence.run(now, title, url, now, memberId)
-    broadcast(roomId, { t: 'member.update', member: rowToMember(q.memberById.get(memberId)) })
+    await q.setPresence(now, title, url, memberId)
+    broadcast(roomId, {
+      t: 'member.update',
+      member: rowToMember(await q.memberById(memberId)),
+    })
     return
   }
 
@@ -153,6 +164,7 @@ function handle(ws, msg, roomId, memberId) {
       authorId: memberId,
       createdAt: Date.now(),
     }
+
     const data = { ...item }
     delete data.id
     delete data.authorId
@@ -161,19 +173,19 @@ function handle(ws, msg, roomId, memberId) {
     delete data.starred
     delete data.status
 
-    q.insertItem.run(
-      item.id,
-      roomId,
-      memberId,
+    await q.insertItem({
+      id: item.id,
+      room_id: roomId,
+      author_id: memberId,
       type,
-      item.createdAt,
-      item.starred ? 1 : 0,
-      item.status ?? 'open',
-      item.refId ?? null,
-      JSON.stringify(data),
-    )
+      created_at: item.createdAt,
+      starred: item.starred ? 1 : 0,
+      status: item.status ?? 'open',
+      ref_id: item.refId ?? null,
+      data: JSON.stringify(data),
+    })
 
-    const stored = rowToItem(q.itemById.get(item.id))
+    const stored = rowToItem(await q.itemById(item.id))
     send(ws, { t: 'item.add', item: stored, ack: input.ack })
     broadcast(roomId, { t: 'item.add', item: stored }, ws)
     return
@@ -184,11 +196,12 @@ function handle(ws, msg, roomId, memberId) {
       send(ws, { t: 'error', code: 'readonly', message: '房间已过编辑期，只能看' })
       return
     }
-    const row = q.itemById.get(String(msg.id ?? ''))
+    const row = await q.itemById(String(msg.id ?? ''))
     if (!row || row.room_id !== roomId) {
       send(ws, { t: 'error', code: 'not_found' })
       return
     }
+
     const patch = msg.patch ?? {}
     // 时间线的排序是房间级的，谁都可以调；其余字段只有作者能改
     const onlyOrder = Object.keys(patch).every((key) => key === 'order')
@@ -196,9 +209,9 @@ function handle(ws, msg, roomId, memberId) {
       send(ws, { t: 'error', code: 'not_owner' })
       return
     }
+
     const current = rowToItem(row)
     const next = { ...current }
-
     for (const [key, value] of Object.entries(patch)) {
       if (writable.has(key)) next[key] = value
     }
@@ -211,14 +224,14 @@ function handle(ws, msg, roomId, memberId) {
     delete data.starred
     delete data.status
 
-    q.updateItem.run(
-      next.starred ? 1 : 0,
-      next.status ?? 'open',
-      JSON.stringify(data),
-      row.id,
-    )
+    await q.updateItem({
+      id: row.id,
+      starred: next.starred ? 1 : 0,
+      status: next.status ?? 'open',
+      data: JSON.stringify(data),
+    })
 
-    const stored = rowToItem(q.itemById.get(row.id))
+    const stored = rowToItem(await q.itemById(row.id))
     send(ws, { t: 'item.patch', item: stored })
     broadcast(roomId, { t: 'item.patch', item: stored }, ws)
     return

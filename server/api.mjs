@@ -16,9 +16,7 @@ export const COLORS = [
 
 const MAX_NAME = 12
 
-function digits4() {
-  return String(randomInt(0, 10000)).padStart(4, '0')
-}
+const digits4 = () => String(randomInt(0, 10000)).padStart(4, '0')
 
 function cleanName(raw) {
   const name = String(raw ?? '').trim().slice(0, MAX_NAME)
@@ -57,7 +55,7 @@ function allow(ip) {
   return list.length <= 30
 }
 
-function makeMember(roomId, name, index) {
+async function makeMember(roomId, name, index) {
   const now = Date.now()
   const member = {
     id: randomUUID(),
@@ -65,15 +63,21 @@ function makeMember(roomId, name, index) {
     color: COLORS[index % COLORS.length],
     lastSeen: now,
   }
-  q.insertMember.run(member.id, roomId, member.name, member.color, now, now)
+  await q.insertMember({
+    id: member.id,
+    room_id: roomId,
+    name: member.name,
+    color: member.color,
+    created_at: now,
+    last_seen: now,
+  })
   return member
 }
 
-function roomPayload(row) {
-  const room = rowToRoom(row)
-  const members = q.membersByRoom.all(row.id).map(rowToMember)
-  const items = q.itemsByRoom.all(row.id).map(rowToItem)
-  return { room, members, items }
+async function roomPayload(row) {
+  const members = (await q.membersByRoom(row.id)).map(rowToMember)
+  const items = (await q.itemsByRoom(row.id)).map(rowToItem)
+  return { room: rowToRoom(row), members, items }
 }
 
 export async function handleApi(req, res, url) {
@@ -86,7 +90,10 @@ export async function handleApi(req, res, url) {
   }
 
   if (req.method === 'POST' && pathname === '/api/room') {
-    if (!allow(ip)) return bad(res, 'rate_limited', 429), true
+    if (!allow(ip)) {
+      bad(res, 'rate_limited', 429)
+      return true
+    }
     const body = await readJson(req)
     const raw = String(body.url ?? '').trim()
     let gameUrl
@@ -95,54 +102,86 @@ export async function handleApi(req, res, url) {
       if (!/^https?:$/.test(parsed.protocol)) throw new Error('bad protocol')
       gameUrl = parsed.href
     } catch {
-      return bad(res, 'bad_url'), true
+      bad(res, 'bad_url')
+      return true
     }
 
-    const modules = Array.isArray(body.modules) && body.modules.length ? body.modules : ['note']
+    const modules =
+      Array.isArray(body.modules) && body.modules.length ? body.modules : ['note']
     const now = Date.now()
 
     let id = digits4()
-    for (let i = 0; i < 40 && q.roomById.get(id); i += 1) id = digits4()
-    if (q.roomById.get(id)) return bad(res, 'room_full', 503), true
+    for (let i = 0; i < 40 && (await q.roomById(id)); i += 1) id = digits4()
+    if (await q.roomById(id)) {
+      bad(res, 'room_full', 503)
+      return true
+    }
 
     const title = String(body.title ?? '').trim() || safeHost(gameUrl)
-    q.insertRoom.run(id, gameUrl, title, JSON.stringify(modules), now, now + 37 * DAY)
+    await q.insertRoom({
+      id,
+      game_url: gameUrl,
+      title,
+      modules: JSON.stringify(modules),
+      created_at: now,
+      expires_at: now + 37 * DAY,
+    })
 
-    const row = q.roomById.get(id)
-    const member = makeMember(id, body.name, 0)
-    return ok(res, { ...roomPayload(row), member }), true
+    const row = await q.roomById(id)
+    const member = await makeMember(id, body.name, 0)
+    ok(res, { ...(await roomPayload(row)), member })
+    return true
   }
 
   const joinMatch = pathname.match(/^\/api\/room\/(\d{4})\/join$/)
   if (req.method === 'POST' && joinMatch) {
-    if (!allow(ip)) return bad(res, 'rate_limited', 429), true
-    const row = q.roomById.get(joinMatch[1])
-    if (!row) return bad(res, 'not_found', 404), true
+    if (!allow(ip)) {
+      bad(res, 'rate_limited', 429)
+      return true
+    }
+    const row = await q.roomById(joinMatch[1])
+    if (!row) {
+      bad(res, 'not_found', 404)
+      return true
+    }
 
     const body = await readJson(req)
-    const index = q.membersByRoom.all(row.id).length
-    const member = makeMember(row.id, body.name, index)
-    return ok(res, { ...roomPayload(row), member }), true
+    const index = (await q.membersByRoom(row.id)).length
+    const member = await makeMember(row.id, body.name, index)
+    ok(res, { ...(await roomPayload(row)), member })
+    return true
   }
 
   const infoMatch = pathname.match(/^\/api\/room\/(\d{4})$/)
   if (req.method === 'GET' && infoMatch) {
-    const row = q.roomById.get(infoMatch[1])
-    if (!row) return bad(res, 'not_found', 404), true
-    return ok(res, { room: rowToRoom(row), online: q.membersByRoom.all(row.id).length }), true
+    const row = await q.roomById(infoMatch[1])
+    if (!row) {
+      bad(res, 'not_found', 404)
+      return true
+    }
+    const members = await q.membersByRoom(row.id)
+    ok(res, { room: rowToRoom(row), online: members.length })
+    return true
   }
 
   // 刷新页面时用本地记住的 memberId 换回整份状态，不用重新加入
   const stateMatch = pathname.match(/^\/api\/room\/(\d{4})\/state$/)
   if (req.method === 'GET' && stateMatch) {
-    const row = q.roomById.get(stateMatch[1])
-    if (!row) return bad(res, 'not_found', 404), true
+    const row = await q.roomById(stateMatch[1])
+    if (!row) {
+      bad(res, 'not_found', 404)
+      return true
+    }
 
     const memberId = url.searchParams.get('member') ?? ''
-    const member = q.memberById.get(memberId)
-    if (!member || member.room_id !== row.id) return bad(res, 'member_missing', 404), true
+    const member = await q.memberById(memberId)
+    if (!member || member.room_id !== row.id) {
+      bad(res, 'member_missing', 404)
+      return true
+    }
 
-    return ok(res, { ...roomPayload(row), member: rowToMember(member) }), true
+    ok(res, { ...(await roomPayload(row)), member: rowToMember(member) })
+    return true
   }
 
   return false
@@ -155,5 +194,3 @@ export function safeHost(url) {
     return '游戏'
   }
 }
-
-export { roomPayload, makeMember }

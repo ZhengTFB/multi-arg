@@ -34,30 +34,30 @@ const joined = await post(`/api/room/${roomId}/join`, { name: '小林' })
 
 const a = await open(roomId, created.member.id)
 const b = await open(roomId, joined.member.id)
-await wait(400)
+await wait(900)
 
 const checks = []
 checks.push(['双方各拿到快照', [a, b].every((c) => c.inbox.some((e) => e.t === 'snapshot'))])
 
 a.ws.send(JSON.stringify({ t: 'item.add', item: { type: 'note', text: '第三页右下角有个小字' } }))
-await wait(350)
+await wait(1500)
 const added = b.inbox.find((e) => e.t === 'item.add')
 checks.push(['A 发的消息广播给 B', added?.item?.text === '第三页右下角有个小字'])
 checks.push(['服务端补了作者', added?.item?.authorId === created.member.id])
 
 a.ws.send(JSON.stringify({ t: 'item.patch', id: added.item.id, patch: { starred: true } }))
-await wait(300)
+await wait(900)
 checks.push([
   '星标同步到双方',
   [a, b].every((c) => c.inbox.filter((e) => e.t === 'item.patch').at(-1)?.item?.starred === true),
 ])
 
 b.ws.send(JSON.stringify({ t: 'item.patch', id: added.item.id, patch: { text: 'hack' } }))
-await wait(300)
+await wait(900)
 checks.push(['非作者改不动', b.inbox.some((e) => e.t === 'error' && e.code === 'not_owner')])
 
 a.ws.send(JSON.stringify({ t: 'presence', title: '店内环境', url: 'https://x' }))
-await wait(300)
+await wait(900)
 checks.push(['presence 能收到', b.inbox.filter((e) => e.t === 'member.update').at(-1)?.member?.current?.title === '店内环境'])
 
 a.ws.close()

@@ -1,10 +1,11 @@
+import './env.mjs'
 import http from 'node:http'
 import { createReadStream, existsSync, statSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { handleApi } from './api.mjs'
 import { attachWs } from './ws.mjs'
-import { purgeExpired } from './db.mjs'
+import { initDb, purgeExpired, dbKind } from './db.mjs'
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
 const DIST = path.join(ROOT, 'dist')
@@ -86,9 +87,12 @@ const server = http.createServer(async (req, res) => {
 
 attachWs(server)
 
-purgeExpired()
-setInterval(purgeExpired, 60 * 60 * 1000).unref()
+await initDb()
+await purgeExpired()
+setInterval(() => {
+  purgeExpired().catch(() => {})
+}, 60 * 60 * 1000).unref()
 
 server.listen(PORT, HOST, () => {
-  console.log(`[arg] http://${HOST}:${PORT}  (dist: ${DIST})`)
+  console.log(`[arg] http://${HOST}:${PORT}  (db: ${dbKind}, dist: ${DIST})`)
 })

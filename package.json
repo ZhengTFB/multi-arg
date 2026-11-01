@@ -18,6 +18,7 @@
     "qa:modules": "node scripts/qa/modules.mjs"
   },
   "dependencies": {
+    "@libsql/client": "^0.18.0",
     "dagre": "^0.8.5",
     "lucide-react": "^1.66.0",
     "qrcode": "^1.5.4",
