@@ -8,6 +8,9 @@ import { fetchState, joinRoom, RoomSocket } from '../lib/net'
 import type { RoomState } from '../lib/net'
 import { loadSession, saveSession } from '../lib/session'
 import { GameFrame } from '../components/GameFrame'
+import { BrowserTabs } from '../components/BrowserTabs'
+import type { Tab } from '../components/BrowserTabs'
+import { NameGate } from '../components/NameGate'
 import { EdgeRail } from '../components/EdgeRail'
 import type { RailAction } from '../components/EdgeRail'
 import { Panel } from '../components/Panel'
@@ -28,7 +31,15 @@ export function Room({ id }: Props) {
   const [members, setMembers] = useState<Member[]>([])
   const [items, setItems] = useState<Item[]>([])
   const [me, setMe] = useState<Member | null>(null)
-  const [phase, setPhase] = useState<'loading' | 'ready' | 'missing'>('loading')
+  const [phase, setPhase] = useState<'loading' | 'name' | 'ready' | 'missing'>('loading')
+  const [bootKey, setBootKey] = useState(0)
+
+  const [tabs, setTabs] = useState<Tab[]>([])
+  const [activeId, setActiveId] = useState('')
+  const [histories, setHistories] = useState<Record<string, string[]>>({})
+  const [frameKey, setFrameKey] = useState(0)
+  const [stuck, setStuck] = useState(false)
+  const loaded = useRef(false)
 
   const [view, setView] = useState<View>('feed')
   const [panelOpen, setPanelOpen] = useState(false)
@@ -38,8 +49,6 @@ export function Room({ id }: Props) {
   const [dragH, setDragH] = useState<number | null>(null)
   const [phone, setPhone] = useState(() => window.matchMedia(PHONE_QUERY).matches)
   const [vh, setVh] = useState(() => window.innerHeight)
-  const [frameSrc, setFrameSrc] = useState('')
-  const [backVisible, setBackVisible] = useState(false)
   const [flash, setFlash] = useState(0)
   const [conn, setConn] = useState<'ok' | 'off' | null>(null)
   const [immersive, setImmersive] = useState(false)
@@ -48,27 +57,31 @@ export function Room({ id }: Props) {
   const [unread] = useState<Set<string>>(() => new Set())
 
   const socket = useRef<RoomSocket | null>(null)
-  const stack = useRef<string[]>([])
   const dragRef = useRef<{ startY: number; startH: number } | null>(null)
   const liveH = useRef(0)
   const skipClick = useRef(false)
 
+  const activeTab = tabs.find((tab) => tab.id === activeId) ?? tabs[0]
+  const frameSrc = activeTab?.url ?? ''
+
+  // 起名之后重新走一遍进房流程
   useEffect(() => {
     let alive = true
 
     const boot = async () => {
-      const savedName = load<string>('name', '')
       const session = loadSession(id)
+      const savedName = load<string>('name', '').trim()
+
+      if (!session && !savedName) {
+        setPhase('name')
+        return
+      }
+
       let state: RoomState | null = null
+      if (session) state = await fetchState(id, session.id).catch(() => null)
+      if (!state) state = await joinRoom(id, savedName).catch(() => null)
 
-      if (session) {
-        state = await fetchState(id, session.id).catch(() => null)
-      }
-      if (!state) {
-        state = await joinRoom(id, savedName).catch(() => null)
-      }
       if (!alive) return
-
       if (!state) {
         setPhase('missing')
         return
@@ -79,8 +92,15 @@ export function Room({ id }: Props) {
       setMembers(state.members)
       setItems(state.items)
       setMe(state.member)
-      setFrameSrc(state.room.game.url)
       setPhase('ready')
+
+      const first: Tab = {
+        id: 't1',
+        url: state.room.game.url,
+        title: state.room.game.title,
+      }
+      setTabs([first])
+      setActiveId(first.id)
 
       socket.current = new RoomSocket(id, state.member.id, {
         onState: (next) => {
@@ -109,7 +129,7 @@ export function Room({ id }: Props) {
         },
         onStatus: (status) => setConn(status === 'ok' ? 'ok' : 'off'),
         onError: () => {
-          /* 只读房间、越权改别人的条目等，静默忽略，界面状态以服务端回声为准 */
+          /* 只读房间、越权改别人的条目等，静默忽略，界面以服务端回声为准 */
         },
       })
     }
@@ -121,7 +141,7 @@ export function Room({ id }: Props) {
       socket.current?.close()
       socket.current = null
     }
-  }, [id])
+  }, [id, bootKey])
 
   useEffect(() => {
     const mq = window.matchMedia(PHONE_QUERY)
@@ -140,21 +160,37 @@ export function Room({ id }: Props) {
     if (room) document.title = `${room.game.title} · 多人 ARG`
   }, [room])
 
-  // 上报「正在看哪一页」，别人成员列表里能看到
+  // 进房先把辅助栏打开，省得有人不知道右边有东西
+  useEffect(() => {
+    if (phase !== 'ready') return
+    if (window.matchMedia(PHONE_QUERY).matches) setLevel('half')
+    else setPanelOpen(true)
+  }, [phase])
+
+  // 上报「正在看哪一页」
   useEffect(() => {
     if (!room || !frameSrc) return
     const timer = window.setTimeout(() => {
-      socket.current?.send({ t: 'presence', title: pageTitle(frameSrc), url: frameSrc })
+      socket.current?.send({ t: 'presence', title: activeTab?.title ?? '', url: frameSrc })
     }, 600)
     return () => window.clearTimeout(timer)
-  }, [frameSrc, room])
+  }, [frameSrc, room, activeTab])
 
-  // 网速提示条：连上后 1.5 秒自己消失
   useEffect(() => {
     if (conn !== 'ok') return
     const timer = window.setTimeout(() => setConn(null), 1500)
     return () => window.clearTimeout(timer)
   }, [conn])
+
+  // 页面 8 秒还没 load 出来，就把刷新按钮亮出来
+  useEffect(() => {
+    loaded.current = false
+    setStuck(false)
+    const timer = window.setTimeout(() => {
+      if (!loaded.current) setStuck(true)
+    }, 8000)
+    return () => window.clearTimeout(timer)
+  }, [frameSrc, frameKey])
 
   const dismissCoach = useCallback(() => {
     setCoachOpen(false)
@@ -183,32 +219,103 @@ export function Room({ id }: Props) {
     socket.current?.send({ t: 'item.patch', id: item.id, patch })
   }, [])
 
-  const openLink = useCallback(
-    (item: Item) => {
-      if (!item.url) return
-      const next = new URL(item.url, location.origin).href
-      stack.current.push(frameSrc)
-      if (stack.current.length > 20) stack.current.shift()
-      setFrameSrc(next)
-      setBackVisible(true)
-      window.setTimeout(() => setBackVisible(false), 3000)
+  // —— 标签页 ——
+
+  const setTabUrl = useCallback(
+    (tabId: string, url: string, title?: string) => {
+      setTabs((prev) =>
+        prev.map((tab) =>
+          tab.id === tabId ? { ...tab, url, title: title ?? tab.title ?? hostOf(url) } : tab,
+        ),
+      )
     },
-    [frameSrc],
+    [],
+  )
+
+  const pushHistory = useCallback((tabId: string, url: string) => {
+    setHistories((prev) => {
+      const list = prev[tabId] ?? []
+      if (list[list.length - 1] === url) return prev
+      return { ...prev, [tabId]: [...list, url].slice(-30) }
+    })
+  }, [])
+
+  const navigate = useCallback(
+    (url: string, title?: string) => {
+      if (!activeTab) return
+      pushHistory(activeTab.id, activeTab.url)
+      setTabUrl(activeTab.id, url, title)
+    },
+    [activeTab, pushHistory, setTabUrl],
+  )
+
+  const openTab = useCallback((url: string, title?: string) => {
+    setTabs((prev) => {
+      const hit = prev.find((tab) => tab.url === url)
+      if (hit) {
+        setActiveId(hit.id)
+        return prev
+      }
+      const tab: Tab = { id: `t${Date.now()}`, url, title: title || hostOf(url) }
+      setActiveId(tab.id)
+      return [...prev, tab]
+    })
+  }, [])
+
+  // 加号：不管有没有同地址都新开一个，方便先把页面备好
+  const newTab = useCallback(() => {
+    const tab: Tab = {
+      id: `t${Date.now()}`,
+      url: activeTab?.url ?? room?.game.url ?? '',
+      title: activeTab?.title ?? '新标签页',
+    }
+    setTabs((prev) => [...prev, tab])
+    setActiveId(tab.id)
+  }, [activeTab, room])
+
+  const closeTab = useCallback(
+    (tabId: string) => {
+      setTabs((prev) => {
+        if (prev.length === 1) return prev
+        const index = prev.findIndex((tab) => tab.id === tabId)
+        const next = prev.filter((tab) => tab.id !== tabId)
+        if (tabId === activeId) setActiveId(next[Math.max(0, index - 1)].id)
+        return next
+      })
+    },
+    [activeId],
   )
 
   const goBack = useCallback(() => {
-    const prev = stack.current.pop()
-    if (prev) setFrameSrc(prev)
-    setBackVisible(false)
+    const list = histories[activeId] ?? []
+    const prev = list[list.length - 1]
+    if (!prev) return
+    setHistories((state) => ({ ...state, [activeId]: list.slice(0, -1) }))
+    setTabUrl(activeId, prev)
+  }, [histories, activeId, setTabUrl])
+
+  const reloadFrame = useCallback(() => {
+    loaded.current = false
+    setStuck(false)
+    setFrameKey((k) => k + 1)
   }, [])
+
+  const openLink = useCallback(
+    (item: Item) => {
+      if (!item.url) return
+      const url = new URL(item.url, location.origin).href
+      openTab(url, item.title)
+    },
+    [openTab],
+  )
 
   const searchInGame = useCallback(
     (q: string) => {
-      const param = room?.game.searchParam || 'q'
-      setFrameSrc(`${room?.game.url ?? ''}?${param}=${encodeURIComponent(q)}`)
-      setBackVisible(false)
+      if (!room) return
+      const param = room.game.searchParam || 'q'
+      navigate(`${room.game.url}?${param}=${encodeURIComponent(q)}`, `搜索「${q}」`)
     },
-    [room],
+    [navigate, room],
   )
 
   const addText = useCallback(
@@ -296,43 +403,37 @@ export function Room({ id }: Props) {
     [patchItem],
   )
 
-  const onAddKeyword = useCallback((word: string, result: 'hit' | 'miss' | 'invalid') => {
-    socket.current?.send({ t: 'item.add', item: { type: 'keyword', keyword: word, result } })
+  const addItem = useCallback((item: Partial<Item>) => {
+    socket.current?.send({ t: 'item.add', item })
   }, [])
 
   const onSaveKeyword = useCallback(
     (q: string) => {
       if (!q) return
-      onAddKeyword(q, 'miss')
+      addItem({ type: 'keyword', keyword: q, result: 'miss' })
     },
-    [onAddKeyword],
+    [addItem],
   )
 
   const onShareResult = useCallback(
     (q: string) => {
-      socket.current?.send({
-        t: 'item.add',
-        item: {
-          type: 'link',
-          url: `${room?.game.url ?? ''}?${room?.game.searchParam || 'q'}=${encodeURIComponent(q)}`,
-          title: `搜索「${q}」`,
-          pageUrl: frameSrc,
-        },
+      if (!room) return
+      addItem({
+        type: 'link',
+        url: `${room.game.url}?${room.game.searchParam || 'q'}=${encodeURIComponent(q)}`,
+        title: `搜索「${q}」`,
+        pageUrl: frameSrc,
       })
     },
-    [frameSrc, room],
+    [frameSrc, room, addItem],
   )
 
   const sharePage = useCallback(() => {
-    const title = pageTitle(frameSrc)
-    socket.current?.send({
-      t: 'item.add',
-      item: { type: 'link', url: frameSrc, title, pageUrl: frameSrc },
-    })
-    showNotice({ id: `pending-${Date.now()}`, authorName: me?.name ?? '我', title })
-  }, [frameSrc, me])
+    if (!activeTab) return
+    addItem({ type: 'link', url: activeTab.url, title: activeTab.title, pageUrl: activeTab.url })
+    showNotice({ id: `pending-${Date.now()}`, authorName: me?.name ?? '我', title: activeTab.title })
+  }, [activeTab, addItem, me, showNotice])
 
-  // 键盘：⌘K 搜索、⌘N 记一笔、Esc 收起
   useEffect(() => {
     const focus = (selector: string) => {
       window.setTimeout(() => {
@@ -457,7 +558,19 @@ export function Room({ id }: Props) {
     )
   }
 
-  if (phase === 'missing' || !room || !me) {
+  if (phase === 'name') {
+    return (
+      <NameGate
+        onDone={(name) => {
+          save('name', name)
+          setPhase('loading')
+          setBootKey((k) => k + 1)
+        }}
+      />
+    )
+  }
+
+  if (phase === 'missing' || !room || !me || !activeTab) {
     return (
       <div className="page-center">
         <div>
@@ -472,6 +585,20 @@ export function Room({ id }: Props) {
       </div>
     )
   }
+
+  const chrome = (
+    <BrowserTabs
+      tabs={tabs}
+      activeId={activeId}
+      canBack={(histories[activeId]?.length ?? 0) > 0}
+      onSelect={setActiveId}
+      onClose={closeTab}
+      onNew={newTab}
+      onNavigate={(url) => navigate(url)}
+      onReload={reloadFrame}
+      onBack={goBack}
+    />
+  )
 
   const panelProps = {
     room,
@@ -490,7 +617,13 @@ export function Room({ id }: Props) {
     onSearchInGame: searchInGame,
     onSaveKeyword,
     onShareResult,
-    onAddKeyword,
+    onAddKeyword: (word: string, result: 'hit' | 'miss' | 'invalid') =>
+      addItem({ type: 'keyword', keyword: word, result }),
+    onAddPerson: (name: string, note: string) =>
+      addItem({ type: 'person', person: { name, note } }),
+    onAddEvent: (at: string, text: string) => addItem({ type: 'event', event: { at, text } }),
+    onAddSecret: (account: string, password: string, usage: string) =>
+      addItem({ type: 'secret', secret: { account, password, usage, verified: false } }),
     onToggleKeyword,
     onToggleVerify,
     onReplayOnboarding: () => {
@@ -509,8 +642,19 @@ export function Room({ id }: Props) {
 
   if (phone) {
     return (
-      <div className="room room--phone">
-        <GameFrame src={frameSrc} phone backVisible={backVisible} onBack={goBack} />
+      <div className="room room--phone" data-immersive={immersive || undefined}>
+        <GameFrame
+          src={frameSrc}
+          phone
+          reloadKey={frameKey}
+          stuck={stuck}
+          chrome={immersive ? undefined : chrome}
+          onLoad={() => {
+            loaded.current = true
+            setStuck(false)
+          }}
+          onReload={reloadFrame}
+        />
 
         {sheetHeight > 4 && (
           <div
@@ -546,12 +690,7 @@ export function Room({ id }: Props) {
               <ChevronDown size={16} strokeWidth={1.8} />
             </button>
           </div>
-          <Panel
-            {...panelProps}
-            variant="drawer"
-            open
-            onImmersive={() => setLevel('closed')}
-          />
+          <Panel {...panelProps} variant="drawer" open onImmersive={() => setLevel('closed')} />
         </div>
 
         <div
@@ -597,7 +736,18 @@ export function Room({ id }: Props) {
 
   return (
     <div className="room" data-immersive={immersive || undefined}>
-      <GameFrame src={frameSrc} phone={false} backVisible={backVisible} onBack={goBack} />
+      <GameFrame
+        src={frameSrc}
+        phone={false}
+        reloadKey={frameKey}
+        stuck={stuck}
+        chrome={immersive ? undefined : chrome}
+        onLoad={() => {
+          loaded.current = true
+          setStuck(false)
+        }}
+        onReload={reloadFrame}
+      />
 
       {railOpen && (
         <div
@@ -621,7 +771,7 @@ export function Room({ id }: Props) {
         }}
       />
 
-      {!panelOpen && (
+      {!panelOpen && !immersive && (
         <button
           type="button"
           className="float-entry"
@@ -633,14 +783,30 @@ export function Room({ id }: Props) {
         </button>
       )}
 
+      {immersive && (
+        <button
+          type="button"
+          className="float-entry"
+          aria-label={t('room.immersive.exit')}
+          title={t('room.immersive.exit')}
+          onClick={() => {
+            setImmersive(false)
+            setPanelOpen(true)
+          }}
+        >
+          <MessageSquare size={18} strokeWidth={1.6} />
+        </button>
+      )}
+
       <Invite room={room} open={inviteOpen} onClose={() => setInviteOpen(false)} />
     </div>
   )
 }
 
-function pageTitle(url: string): string {
-  if (!url) return '游戏'
-  if (/p=duty/.test(url)) return '值班表'
-  if (/forum/.test(url)) return '论坛'
-  return '店内环境'
+function hostOf(url: string): string {
+  try {
+    return new URL(url, location.origin).host.replace(/^www\./, '')
+  } catch {
+    return url
+  }
 }

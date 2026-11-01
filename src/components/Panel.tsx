@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronDown, ChevronRight, Send, UserPlus, X } from 'lucide-react'
+import { ChevronDown, PanelRightClose, Send, UserPlus, X } from 'lucide-react'
 import type { Item, Member, Room } from '../lib/types'
 import { Segmented } from './ui/Segmented'
 import type { SegItem } from './ui/Segmented'
@@ -40,6 +40,9 @@ interface Props {
   onSaveKeyword: (q: string) => void
   onShareResult: (q: string) => void
   onAddKeyword: (word: string, result: 'hit' | 'miss' | 'invalid') => void
+  onAddPerson: (name: string, note: string) => void
+  onAddEvent: (at: string, text: string) => void
+  onAddSecret: (account: string, password: string, usage: string) => void
   onToggleKeyword: (item: Item) => void
   onToggleVerify: (item: Item) => void
   onReplayOnboarding: () => void
@@ -81,6 +84,9 @@ export function Panel(props: Props) {
     onSaveKeyword,
     onShareResult,
     onAddKeyword,
+    onAddPerson,
+    onAddEvent,
+    onAddSecret,
     onToggleKeyword,
     onToggleVerify,
     onReplayOnboarding,
@@ -198,12 +204,12 @@ export function Panel(props: Props) {
         {variant === 'side' && (
           <button
             type="button"
-            className="panel-collapse"
+            className="icon-btn"
             aria-label={t('room.immersive')}
             title={t('room.immersive')}
             onClick={onImmersive}
           >
-            <ChevronRight size={14} strokeWidth={1.8} />
+            <PanelRightClose size={16} strokeWidth={1.6} />
           </button>
         )}
       </div>
@@ -242,30 +248,32 @@ export function Panel(props: Props) {
 
       <Segmented items={segs} value={view} onChange={(k) => onView(k as View)} />
 
-      <SearchBar
-        value={query}
-        onChange={setQuery}
-        hasSearch={room.game.hasSearch}
-        localCount={localCount}
-        onSearchInGame={onSearchInGame}
-        onSaveKeyword={onSaveKeyword}
-        onShareResult={onShareResult}
-      />
+      {view === 'note' && (
+        <MemberBar
+          members={members}
+          meId={me.id}
+          filter={memberFilter}
+          starOnly={starOnly}
+          unread={unread}
+          onFilter={setMemberFilter}
+          onStarOnly={setStarOnly}
+        />
+      )}
+
+      {(view === 'feed' || view === 'note') && (
+        <SearchBar
+          value={query}
+          onChange={setQuery}
+          hasSearch={room.game.hasSearch}
+          localCount={localCount}
+          onSearchInGame={onSearchInGame}
+          onSaveKeyword={onSaveKeyword}
+          onShareResult={onShareResult}
+        />
+      )}
 
       <div className="panel-body">
         <div className="panel-scroll" ref={scrollRef}>
-          {view === 'note' && (
-            <MemberBar
-              members={members}
-              meId={me.id}
-              filter={memberFilter}
-              starOnly={starOnly}
-              unread={unread}
-              onFilter={setMemberFilter}
-              onStarOnly={setStarOnly}
-            />
-          )}
-
           {view === 'feed' && (
             <Feed
               items={items}
@@ -294,12 +302,18 @@ export function Panel(props: Props) {
             />
           )}
 
-          {view === 'people' && <People items={items} members={members} />}
+          {view === 'people' && (
+            <People items={items} members={members} onAdd={onAddPerson} />
+          )}
           {view === 'keyword' && (
             <Keywords items={items} onAdd={onAddKeyword} onCycle={onToggleKeyword} />
           )}
-          {view === 'secret' && <Secrets items={items} onToggleVerify={onToggleVerify} />}
-          {view === 'timeline' && <Timeline items={items} members={members} />}
+          {view === 'secret' && (
+            <Secrets items={items} onAdd={onAddSecret} onToggleVerify={onToggleVerify} />
+          )}
+          {view === 'timeline' && (
+            <Timeline items={items} members={members} onAdd={onAddEvent} />
+          )}
         </div>
 
         <Composer onSend={onSend} hidden={view !== 'feed' && view !== 'note'} />

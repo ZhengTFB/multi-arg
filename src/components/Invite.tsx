@@ -43,11 +43,23 @@ export function Invite({ room, open, onClose }: Props) {
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(url)
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(url)
+      } else {
+        // http 局域网下没有 clipboard API，退回到选中复制
+        const field = document.createElement('textarea')
+        field.value = url
+        field.style.position = 'fixed'
+        field.style.opacity = '0'
+        document.body.appendChild(field)
+        field.select()
+        document.execCommand('copy')
+        document.body.removeChild(field)
+      }
       setCopied(true)
       window.setTimeout(() => setCopied(false), 2000)
     } catch {
-      /* 非安全上下文下剪贴板不可用，用户还能手动报房间号 */
+      setCopied(false)
     }
   }
 
@@ -72,6 +84,8 @@ export function Invite({ room, open, onClose }: Props) {
           <div style={{ width: '100%', height: '100%', background: 'var(--linen)', borderRadius: 8 }} />
         )}
       </div>
+
+      <p className="invite-url">{url}</p>
 
       <div className="invite-actions">
         <Button variant="secondary" block onClick={copy}>

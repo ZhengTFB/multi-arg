@@ -1,16 +1,16 @@
 ﻿{
   "items": [
     {
-      "slug": "lingyi-forum",
-      "title": "关于灵异论坛的调查记录",
+      "slug": "missing",
+      "title": "大学生登山失踪事件",
       "author": "",
-      "url": "https://mminghuo.github.io/forum/",
+      "url": "https://missing.minis.yoroll.ai/?config=missing&lang=zh",
       "cover": "/covers/lingyi-forum.jpg",
       "minutes": null,
       "hasSearch": false,
       "searchParam": "",
       "embeddable": true,
-      "note": "GitHub Pages，无嵌入限制。进度存在 localStorage，多页跳转（login.html、desktop.html）。"
+      "note": "missing.minis.yoroll.ai，带 config 与 lang 参数，别把 query 去掉。"
     },
     {
       "slug": "bilin-forum",
@@ -37,16 +37,16 @@
       "note": "Vercel，无嵌入限制。页面里的输入框是跟 NPC 对话，不是站内搜索，别接进搜索框。资源走 lineargame.top 和 cloudfront，站内有 <base> 标签。"
     },
     {
-      "slug": "wechat-collection",
-      "title": "背影全家福合集",
+      "slug": "yeshanbichu",
+      "title": "邺山彼处",
       "author": "",
-      "url": "https://mp.weixin.qq.com/mp/homepage?__biz=MzYzMjA5MDc2MA%3D%3D&hid=6&sn=e36b7430f1a848019e2e0fc9e8701f7a&scene=305",
+      "url": "https://yeshanbichu.minis.yoroll.ai/",
       "cover": "/covers/wechat-collection.jpg",
       "minutes": null,
       "hasSearch": false,
       "searchParam": "",
-      "embeddable": false,
-      "note": "公众号页面，嵌不了。卡片上不显示，或者显示但点开走新窗口。"
+      "embeddable": true,
+      "note": "missing 同系列站点。"
     }
   ]
 }

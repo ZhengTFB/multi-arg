@@ -1,28 +1,41 @@
-import { ArrowLeft } from 'lucide-react'
+import type { ReactNode } from 'react'
+import { RotateCw } from 'lucide-react'
 import { t } from '../lib/copy'
 
 interface Props {
   src: string
   phone: boolean
-  backVisible?: boolean
-  onBack?: () => void
+  reloadKey: number
+  stuck: boolean
+  chrome?: ReactNode
+  onLoad: () => void
+  onReload: () => void
 }
 
 /**
- * 桌面与平板上，游戏占满面板左边剩下的整块区域，不再把 430 宽的手机画面放大一点点。
- * 面板那 360 一直预留，所以开合面板时游戏不会跳动。
+ * 游戏区。桌面与平板占满面板左边，手机全屏；
+ * 顶上是浏览器条（地址、标签页），沉浸模式下整条隐藏。
  */
-export function GameFrame({ src, phone, backVisible = false, onBack }: Props) {
+export function GameFrame({ src, phone, reloadKey, stuck, chrome, onLoad, onReload }: Props) {
   return (
     <div className={phone ? 'stage stage--phone' : 'stage'}>
       <div className="frame">
-        <iframe src={src} title="游戏" allow="clipboard-write" />
-        {backVisible && (
-          <button type="button" className="back-pill" onClick={onBack}>
-            <ArrowLeft size={13} strokeWidth={1.8} />
-            {t('room.back')}
-          </button>
-        )}
+        {chrome}
+        <div className="frame-body">
+          <iframe
+            key={`${src}#${reloadKey}`}
+            src={src}
+            title="游戏"
+            allow="clipboard-write; fullscreen"
+            onLoad={onLoad}
+          />
+          {stuck && (
+            <button type="button" className="frame-reload" onClick={onReload}>
+              <RotateCw size={14} strokeWidth={1.8} />
+              <span data-copy="room.frame.reload">{t('room.frame.reload')}</span>
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )

@@ -1,6 +1,5 @@
 import { Star } from 'lucide-react'
 import type { Member } from '../lib/types'
-import { initial } from '../lib/color'
 import { t } from '../lib/copy'
 
 interface Props {
@@ -13,6 +12,7 @@ interface Props {
   onStarOnly: (on: boolean) => void
 }
 
+/** 笔记上方的人名筛选：全部 / 我 / 每个成员（显示全名）。 */
 export function MemberBar({ members, meId, filter, starOnly, unread, onFilter, onStarOnly }: Props) {
   return (
     <div className="memberbar">
@@ -44,17 +44,16 @@ export function MemberBar({ members, meId, filter, starOnly, unread, onFilter, o
         <button
           key={member.id}
           type="button"
-          className="avatar"
-          style={{ background: member.color }}
+          className="chip chip--person"
           aria-pressed={!starOnly && filter === member.id}
-          aria-label={member.name}
           title={member.name}
           onClick={() => {
             onStarOnly(false)
             onFilter(member.id)
           }}
         >
-          {initial(member.name)}
+          <i style={{ background: member.color }} />
+          <span className="chip-name">{member.name}</span>
           {unread.has(member.id) && member.id !== meId && <span className="avatar-unread" />}
         </button>
       ))}
@@ -62,7 +61,8 @@ export function MemberBar({ members, meId, filter, starOnly, unread, onFilter, o
         type="button"
         className="star-chip"
         aria-pressed={starOnly}
-        aria-label="公共区"
+        aria-label="公共笔记"
+        title="公共笔记"
         onClick={() => onStarOnly(!starOnly)}
       >
         <Star size={13} fill={starOnly ? 'currentColor' : 'none'} strokeWidth={1.5} />

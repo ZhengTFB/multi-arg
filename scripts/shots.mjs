@@ -63,7 +63,8 @@ function connect(roomId, memberId) {
 const ONBOARDED = () => {
   try {
     localStorage.setItem('arg:coach', 'true')
-    localStorage.setItem('arg:name', '访客一')
+    // 界面的值一律走 JSON.stringify，直接塞字符串会解析失败
+    localStorage.setItem('arg:name', JSON.stringify('访客一'))
   } catch {
     /* 忽略 */
   }
@@ -159,12 +160,9 @@ async function main() {
     const padPage = await pad.newPage()
     await padPage.goto(`${BASE}/r/${roomId}?shot=1`, { waitUntil: 'domcontentloaded' })
     await padPage.waitForSelector('.msg-bubble', { timeout: 15000 })
-    await padPage.waitForTimeout(600)
-    // 右边缘划一下 → 图标浮出 → 点「聊天」展开面板
-    await padPage.locator('.seam-zone').click({ position: { x: 12, y: 400 } })
-    await padPage.waitForTimeout(500)
-    await padPage.locator('.rail-btn').nth(1).click()
-    await padPage.waitForTimeout(900)
+    // 现在进房默认就开着辅助栏，等动画落位即可
+    await padPage.waitForSelector('.panel[data-open="true"]', { timeout: 15000 })
+    await padPage.waitForTimeout(2000)
     await padPage.screenshot({ path: path.join(OUT, 'room-ipad.png') })
     console.log('room-ipad.png')
 
@@ -179,9 +177,8 @@ async function main() {
     const phonePage = await phone.newPage()
     await phonePage.goto(`${BASE}/r/${roomId}?shot=1`, { waitUntil: 'domcontentloaded' })
     await phonePage.waitForSelector('.conveyor', { timeout: 15000 })
-    await phonePage.waitForTimeout(600)
-    await phonePage.locator('.conveyor').click()
-    await phonePage.waitForTimeout(800)
+    await phonePage.waitForSelector('.drawer[data-open="true"]', { timeout: 15000 })
+    await phonePage.waitForTimeout(2000)
     await phonePage.screenshot({ path: path.join(OUT, 'room-phone.png') })
     console.log('room-phone.png')
   } finally {
