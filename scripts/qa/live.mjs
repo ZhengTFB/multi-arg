@@ -22,17 +22,15 @@ const browser = await chromium.launch({ channel: 'msedge' })
 async function open(name) {
   const ctx = await browser.newContext({ viewport: { width: 1180, height: 820 }, locale: 'zh-CN' })
   await ctx.addInitScript((n) => {
-    localStorage.setItem('arg:name', n)
+    // 界面里的值都是 JSON 存的，这里也必须 stringify
+    localStorage.setItem('arg:name', JSON.stringify(n))
     localStorage.setItem('arg:coach', 'true')
   }, name)
   const page = await ctx.newPage()
   await page.goto(`${BASE}/r/${roomId}`, { waitUntil: 'domcontentloaded' })
   await page.waitForSelector('.room', { timeout: 15000 })
-  await page.waitForTimeout(500)
-  await page.locator('.seam-zone').click({ position: { x: 12, y: 400 } })
-  await page.waitForTimeout(400)
-  await page.locator('.rail-btn').nth(1).click()
-  await page.waitForTimeout(500)
+  await page.waitForSelector('.panel[data-open="true"]', { timeout: 15000 })
+  await page.waitForTimeout(600)
   return page
 }
 

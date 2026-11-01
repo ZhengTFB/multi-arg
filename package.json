@@ -13,7 +13,8 @@
     "preview": "vite preview",
     "shots": "node scripts/shots.mjs",
     "qa:smoke": "node scripts/qa/smoke.mjs",
-    "qa:live": "node scripts/qa/live.mjs"
+    "qa:live": "node scripts/qa/live.mjs",
+    "qa:ui": "node scripts/qa/ui.mjs"
   },
   "dependencies": {
     "dagre": "^0.8.5",
