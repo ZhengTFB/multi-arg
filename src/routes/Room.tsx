@@ -8,7 +8,9 @@ import { fetchState, joinRoom, RoomSocket } from '../lib/net'
 import type { RoomState } from '../lib/net'
 import { loadSession, saveSession } from '../lib/session'
 import { GameFrame } from '../components/GameFrame'
+import type { FrameAlert } from '../components/GameFrame'
 import { BrowserTabs } from '../components/BrowserTabs'
+import { fromProxyUrl, hostOf, toProxyUrl } from '../lib/proxy'
 import type { Tab } from '../components/BrowserTabs'
 import { NameGate } from '../components/NameGate'
 import { EdgeRail } from '../components/EdgeRail'
@@ -55,7 +57,15 @@ export function Room({ id }: Props) {
   const [coachOpen, setCoachOpen] = useState(() => !has('coach'))
   const [notice, setNotice] = useState<ShareNotice | null>(null)
   const [shareDraft, setShareDraft] = useState<string | null>(null)
+  const [guideOpen, setGuideOpen] = useState(() => !has('guide'))
   const [unread] = useState<Set<string>>(() => new Set())
+  // 页面里翻到哪一页（由被代理页回传，代理之后是真实长地址）
+  const [liveUrl, setLiveUrl] = useState('')
+  const [liveTitle, setLiveTitle] = useState('')
+  // 不是网页的链接（mailto: 等）拦下来提示一句
+  const [blocked, setBlocked] = useState<{ url: string } | null>(null)
+  // 代理抓不动的站点退回直连（跨域，读不到地址但仍可用）
+  const [directHosts, setDirectHosts] = useState<Set<string>>(() => new Set())
 
   const socket = useRef<RoomSocket | null>(null)
   const dragRef = useRef<{ startY: number; startH: number } | null>(null)
@@ -63,7 +73,15 @@ export function Room({ id }: Props) {
   const skipClick = useRef(false)
 
   const activeTab = tabs.find((tab) => tab.id === activeId) ?? tabs[0]
-  const frameSrc = activeTab?.url ?? ''
+  const activeUrl = activeTab?.url ?? ''
+  /** 给用户的真实地址：页面里翻页之后以回传的为准 */
+  const currentUrl = liveUrl || activeUrl
+  /** 给 iframe 的地址：默认走同源代理，抓不动的站退回直连 */
+  const frameSrc = !activeUrl
+    ? ''
+    : directHosts.has(hostOf(activeUrl))
+      ? activeUrl
+      : toProxyUrl(activeUrl)
 
   // 起名之后重新走一遍进房流程
   useEffect(() => {
@@ -168,14 +186,21 @@ export function Room({ id }: Props) {
     else setPanelOpen(true)
   }, [phase])
 
-  // 上报「正在看哪一页」
+  // 换标签、换地址之后等页面自己重新报位置
   useEffect(() => {
-    if (!room || !frameSrc) return
+    setLiveUrl('')
+    setLiveTitle('')
+    setBlocked(null)
+  }, [activeId, activeUrl])
+
+  // 上报「正在看哪一页」（存真实地址，不存 /p 代理前缀）
+  useEffect(() => {
+    if (!room || !currentUrl) return
     const timer = window.setTimeout(() => {
-      socket.current?.send({ t: 'presence', title: activeTab?.title ?? '', url: frameSrc })
+      socket.current?.send({ t: 'presence', title: liveTitle || activeTab?.title || '', url: currentUrl })
     }, 600)
     return () => window.clearTimeout(timer)
-  }, [frameSrc, room, activeTab])
+  }, [currentUrl, liveTitle, room, activeTab])
 
   useEffect(() => {
     if (conn !== 'ok') return
@@ -301,6 +326,46 @@ export function Room({ id }: Props) {
     setFrameKey((k) => k + 1)
   }, [])
 
+  // 被代理页回传：翻到哪一页、点了什么链接 —— 一切点击都在房间里解决
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      const data = event.data as
+        | { __arg?: number; t?: string; url?: string; title?: string; blank?: boolean }
+        | null
+      if (!data || typeof data !== 'object' || data.__arg !== 1) return
+
+      if (data.t === 'url' && typeof data.url === 'string') {
+        setLiveUrl(fromProxyUrl(data.url))
+        if (data.title) setLiveTitle(data.title)
+        return
+      }
+
+      if (data.t === 'navigate' && typeof data.url === 'string') {
+        const target = fromProxyUrl(data.url)
+        if (!/^https?:/i.test(target)) return
+        const host = hostOf(target)
+        // 本来要开新窗口的（target=_blank / window.open / ctrl+点击）→ 我们自己的标签页
+        if (data.blank || (host && host !== hostOf(activeUrl))) {
+          openTab(target, host)
+          return
+        }
+        // 又点了当前这一页：重载一下，别让人以为点了没反应
+        if (target === currentUrl) {
+          reloadFrame()
+          return
+        }
+        navigate(target, host)
+        return
+      }
+
+      if (data.t === 'blocked' && typeof data.url === 'string' && data.url) {
+        setBlocked({ url: data.url })
+      }
+    }
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
+  }, [activeUrl, currentUrl, navigate, openTab, reloadFrame])
+
   const openLink = useCallback(
     (item: Item) => {
       if (!item.url) return
@@ -326,7 +391,7 @@ export function Room({ id }: Props) {
 
   const addText = useCallback(
     (text: string) => {
-      const base = { pageUrl: frameSrc }
+      const base = { pageUrl: currentUrl }
 
       const kw = text.match(/^词\s+(.+)$/)
       if (kw) {
@@ -380,7 +445,7 @@ export function Room({ id }: Props) {
 
       socket.current?.send({ t: 'item.add', item: { type: 'msg', ...base, text } })
     },
-    [frameSrc, members],
+    [currentUrl, members],
   )
 
   const onStar = useCallback(
@@ -428,19 +493,19 @@ export function Room({ id }: Props) {
         type: 'link',
         url: `${room.game.url}?${room.game.searchParam || 'q'}=${encodeURIComponent(q)}`,
         title: `搜索「${q}」`,
-        pageUrl: frameSrc,
+        pageUrl: currentUrl,
       })
     },
-    [frameSrc, room, addItem],
+    [currentUrl, room, addItem],
   )
 
-  /** 同源时能读到 iframe 真正停在哪一页；跨域只能拿到我们最后一次设置的地址 */
+  /** 走代理时 iframe 与主页面同源，能读到它真正停在哪一页（顺手把 /p 前缀还原成原站地址） */
   const readFrameUrl = useCallback((): string | null => {
     try {
       const frame = document.querySelector<HTMLIFrameElement>('.frame-body iframe')
       const href = frame?.contentWindow?.location.href
       if (!href || href === 'about:blank') return null
-      return href
+      return fromProxyUrl(href)
     } catch {
       return null
     }
@@ -456,20 +521,33 @@ export function Room({ id }: Props) {
 
   const sharePage = useCallback(() => {
     if (!activeTab) return
-    const real = readFrameUrl()
-    if (real && real !== activeTab.url) {
-      setTabUrl(activeTab.id, real, hostOf(real))
-      doShare(real, hostOf(real))
+    // 代理之后地址是读得到的：直接分享用户眼前这一页的真实长地址
+    const real = readFrameUrl() || liveUrl
+    if (real) {
+      doShare(real, liveTitle || activeTab.title || hostOf(real))
       return
     }
-    const crossOrigin = !real
-    // 跨域拿不到游戏内部地址：让用户确认/粘贴完整链接，避免两张卡都是同一个域名
-    if (crossOrigin) {
-      setShareDraft(activeTab.url)
-      return
-    }
-    doShare(activeTab.url, activeTab.title)
-  }, [activeTab, doShare, readFrameUrl, setTabUrl])
+    // 只有直连（跨域）才读不到，这时才让用户粘一次
+    setShareDraft(activeUrl)
+  }, [activeTab, activeUrl, doShare, liveTitle, liveUrl, readFrameUrl])
+
+  /** 只有 mailto: / tel: 这类不是网页的链接才拦下来提示一句 */
+  const frameAlert: FrameAlert | null = blocked && {
+    title: '这个链接不是网页',
+    hint: `${blocked.url} —— 这类链接只能交给系统处理，房间里的框打不开它。`,
+    actions: [{ label: '知道了', onClick: () => setBlocked(null) }],
+  }
+
+  // 代理抓不到目标站（要登录、拒绝抓取），这个站退回直连
+  const onProxyFail = useCallback(() => {
+    const host = hostOf(activeTab?.url ?? '')
+    if (!host) return
+    setDirectHosts((prev) => {
+      const next = new Set(prev)
+      next.add(host)
+      return next
+    })
+  }, [activeTab?.url])
 
   useEffect(() => {
     const focus = (selector: string) => {
@@ -627,6 +705,7 @@ export function Room({ id }: Props) {
     <BrowserTabs
       tabs={tabs}
       activeId={activeId}
+      liveUrl={liveUrl}
       canBack={(histories[activeId]?.length ?? 0) > 0}
       onSelect={setActiveId}
       onClose={closeTab}
@@ -683,11 +762,39 @@ export function Room({ id }: Props) {
     onDismissNotice: () => setNotice(null),
   }
 
+  const guideModal = !guideOpen ? null : (
+    <div className="share-dialog" role="dialog" aria-modal="true">
+      <p className="share-dialog-title">两个常用操作</p>
+      <p className="share-dialog-hint">
+        <b>换页 / 访问新链接</b>：点顶部的地址栏，输入或粘贴网址后回车；左边箭头是返回上一页，右边圆圈是刷新。
+      </p>
+      <p className="share-dialog-hint">
+        <b>分享给同房间的人</b>：点右上角「分享此页」，眼前这一页（带完整路径）会作为卡片发进聊天，别人点一下就到同一页。
+      </p>
+      <p className="share-dialog-hint">
+        <b>游戏里的链接</b>：站内翻页就在当前框里走；本来要开新窗口的链接（含站外站），会开成我们自己的标签页，
+        不会把你甩到系统浏览器里去。
+      </p>
+      <div className="share-dialog-actions">
+        <button
+          type="button"
+          className="share-dialog-ok"
+          onClick={() => {
+            save('guide', true)
+            setGuideOpen(false)
+          }}
+        >
+          知道了
+        </button>
+      </div>
+    </div>
+  )
+
   const shareDialog = shareDraft === null ? null : (
     <div className="share-dialog" role="dialog" aria-modal="true">
       <p className="share-dialog-title">分享哪一页？</p>
       <p className="share-dialog-hint">
-        游戏翻到别的页面时，我们读不到它内部的网址。把当前地址粘进来，别人点卡片才会到同一页。
+        这个站没能走代理，读不到它内部的网址。翻到哪页就把那页地址粘进来，别人点卡片才会落到同一处。
       </p>
       <input
         value={shareDraft}
@@ -703,6 +810,34 @@ export function Room({ id }: Props) {
           if (e.key === 'Escape') setShareDraft(null)
         }}
       />
+      <div className="share-dialog-quick">
+        <button
+          type="button"
+          onClick={() => {
+            const url = shareDraft.trim()
+            if (!url) return
+            navigator.clipboard?.writeText(url).catch(() => {})
+          }}
+        >
+          复制链接
+        </button>
+        <button
+          type="button"
+          onClick={async () => {
+            try {
+              const text = (await navigator.clipboard.readText()).trim()
+              if (!text) return
+              const url = /^https?:\/\//i.test(text) ? text : `https://${text}`
+              doShare(url, hostOf(url))
+              setShareDraft(null)
+            } catch {
+              /* 浏览器不给读剪贴板就手动粘 */
+            }
+          }}
+        >
+          粘贴并分享
+        </button>
+      </div>
       <div className="share-dialog-actions">
         <button type="button" className="share-dialog-cancel" onClick={() => setShareDraft(null)}>
           取消
@@ -731,6 +866,8 @@ export function Room({ id }: Props) {
           reloadKey={frameKey}
           stuck={stuck}
           chrome={immersive ? undefined : chrome}
+          alert={frameAlert}
+          onProxyFail={onProxyFail}
           onLoad={() => {
             loaded.current = true
             setStuck(false)
@@ -812,6 +949,7 @@ export function Room({ id }: Props) {
         )}
 
         {shareDialog}
+      {guideModal}
         <Invite room={room} open={inviteOpen} onClose={() => setInviteOpen(false)} />
       </div>
     )
@@ -825,6 +963,8 @@ export function Room({ id }: Props) {
         reloadKey={frameKey}
         stuck={stuck}
         chrome={immersive ? undefined : chrome}
+        alert={frameAlert}
+        onProxyFail={onProxyFail}
         onLoad={() => {
           loaded.current = true
           setStuck(false)
@@ -882,15 +1022,8 @@ export function Room({ id }: Props) {
       )}
 
       {shareDialog}
+      {guideModal}
         <Invite room={room} open={inviteOpen} onClose={() => setInviteOpen(false)} />
     </div>
   )
-}
-
-function hostOf(url: string): string {
-  try {
-    return new URL(url, location.origin).host.replace(/^www\./, '')
-  } catch {
-    return url
-  }
 }

@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { handleApi } from './api.mjs'
 import { attachWs } from './ws.mjs'
 import { initDb, purgeExpired, dbKind } from './db.mjs'
+import { handleProxy, proxyPathFromReferer } from './proxy.mjs'
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
 const DIST = path.join(ROOT, 'dist')
@@ -64,6 +65,13 @@ function serveStatic(req, res, pathname) {
   res.end('not found')
 }
 
+function existsInDist(pathname) {
+  if (!existsSync(DIST)) return false
+  const safe = path.normalize(pathname).replace(/^(\.\.[/\\])+/, '')
+  const target = path.join(DIST, safe === '/' ? 'index.html' : safe)
+  return target.startsWith(DIST) && existsSync(target) && statSync(target).isFile()
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`)
 
@@ -76,10 +84,30 @@ const server = http.createServer(async (req, res) => {
     return
   }
 
+  // 外部游戏页挂到同源下，才读得到地址、拦得住外链
+  if (url.pathname.startsWith('/p/')) {
+    await handleProxy(req, res, url)
+    return
+  }
+
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.writeHead(405)
     res.end()
     return
+  }
+
+  // 被代理页里 JS 拼出来的绝对路径（`/data/x.json`）会落在这里，按 Referer 折回代理
+  if (req.headers.referer && !existsInDist(url.pathname)) {
+    const base = proxyPathFromReferer(req.headers.referer)
+    if (base) {
+      const scheme = base.protocol.replace(':', '')
+      res.writeHead(302, {
+        location: `/p/${scheme}/${base.host}${url.pathname}${url.search}`,
+        'cache-control': 'no-store',
+      })
+      res.end()
+      return
+    }
   }
 
   serveStatic(req, res, url.pathname)

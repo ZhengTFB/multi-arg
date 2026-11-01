@@ -11,6 +11,8 @@ export interface Tab {
 interface Props {
   tabs: Tab[]
   activeId: string
+  /** 页面里自己翻到的那一页（同源代理才读得到），地址栏显示它以真实位置为准 */
+  liveUrl?: string
   canBack: boolean
   onSelect: (id: string) => void
   onClose: (id: string) => void
@@ -34,6 +36,7 @@ function pretty(url: string): string {
 export function BrowserTabs({
   tabs,
   activeId,
+  liveUrl,
   canBack,
   onSelect,
   onClose,
@@ -43,6 +46,7 @@ export function BrowserTabs({
   onBack,
 }: Props) {
   const active = tabs.find((tab) => tab.id === activeId) ?? tabs[0]
+  const shown = liveUrl || active?.url || ''
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -53,13 +57,13 @@ export function BrowserTabs({
 
   useEffect(() => {
     if (editing) {
-      setDraft(active?.url ?? '')
+      setDraft(shown)
       window.setTimeout(() => {
         inputRef.current?.focus()
         inputRef.current?.select()
       }, 30)
     }
-  }, [editing, active?.url])
+  }, [editing, shown])
 
   const submit = () => {
     const raw = draft.trim()
@@ -108,9 +112,9 @@ export function BrowserTabs({
             type="button"
             className="browser-addr"
             onClick={() => setEditing(true)}
-            title={active?.url ?? ''}
+            title={shown}
           >
-            <span className="browser-addr-text">{pretty(active?.url ?? '')}</span>
+            <span className="browser-addr-text">{pretty(shown)}</span>
             <span className="browser-addr-pen">✎</span>
           </button>
         )}
