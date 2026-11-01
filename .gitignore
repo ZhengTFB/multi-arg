@@ -20,8 +20,13 @@ Thumbs.db
 .vscode/
 *.log
 
-# 工具生成的集成规则与缓存，不进仓库
-.codebuddy/
+# 工具生成的集成规则与缓存，不进仓库（但自写的 skills 要提交）
+.codebuddy/*
+!.codebuddy/skills/
+!.codebuddy/skills/**
+
+# 部署账号与环境说明（本地文件，含账号信息）
+.deploy/
 
 # 文案保存前留的上一版备份
 src/copy.json.bak
