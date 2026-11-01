@@ -73,3 +73,13 @@
 2026-11-01 新手引导从弹层改成手机端一条指向传送带的气泡（`room.coach`），iPad 和电脑完全不引导。用户原话：「删掉使用指南，太详细了，引导用户点开那个隐藏的底边栏就行」。
 
 2026-11-01 首页改成整屏 hero + 滚动进入推荐：首屏只有标题、两个 tab、输入框和一条「向下看编辑推荐」，推荐区用 IntersectionObserver 淡入上浮。用户要求首页居中、下滑有动效，并且首页要引导。
+
+2026-11-01 后端用 Node 24 内置 `node:sqlite` + `ws`，一个进程同时托管 `dist/`、`/api`、`/ws`，单端口 8787。理由：文档里的 Cloudflare Durable Objects + SQLite 不能在腾讯云原样跑，而房间数据量极小（几百条），内置 SQLite 零依赖、能直接落盘；单端口顺带解决跨域和代理。影响面：`server/`、`npm run server`、`vite.config.ts` 的 proxy。
+
+2026-11-01 房间口令彻底取消，只剩 4 位房间号，靠 IP 限流（30 次/分钟）挡扫号；邀请链接是 `/r/<房间号>`，不再带 token。用户明确要求「去除口令的设计」；这也让建房流程少一步，代价是知道号就能进，属于产品取舍。影响面：`server/api.mjs`、`Home`、`Invite`。
+
+2026-11-01 成员身份存在浏览器（`arg:member:<房间号>`），刷新用 `GET /api/room/:id/state?member=` 换回同一身份，不会每刷一次多一个人。服务端只认 memberId，不认 cookie/token。影响面：`src/lib/session.ts`、`Room` 的启动流程。
+
+2026-11-01 所有写入走 WebSocket，服务端补 `id`/作者/时间后落库再广播，**只有作者能改自己的条目**（`not_owner`）。前端不做乐观更新，以服务端回声为准：本地延迟低，逻辑简单，越权也能被挡住。影响面：`server/ws.mjs`、`Room` 的 `patchItem`。
+
+2026-11-01 聊天区在消息不足一屏时贴底显示（`.panel-scroll` 改 flex 列 + 首个子元素 `margin-top:auto`）。空的房间如果从顶部开始排，会留下大片空白，看起来像没加载出来。

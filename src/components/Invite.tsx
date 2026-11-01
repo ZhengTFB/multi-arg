@@ -7,15 +7,14 @@ import { t } from '../lib/copy'
 
 interface Props {
   room: Room
-  token: string
   open: boolean
   onClose: () => void
 }
 
-export function Invite({ room, token, open, onClose }: Props) {
+export function Invite({ room, open, onClose }: Props) {
   const [svg, setSvg] = useState('')
   const [copied, setCopied] = useState(false)
-  const url = `${location.origin}/r/${room.id}#${token}`
+  const url = `${location.origin}/r/${room.id}`
 
   useEffect(() => {
     let alive = true

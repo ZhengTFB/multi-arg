@@ -13,7 +13,7 @@ export default function App() {
     <>
       {route.name === 'home' && <Home />}
       {route.name === 'setup' && <Setup url={route.url} preset={route.preset} />}
-      {route.name === 'room' && <Room key={route.id} id={route.id} token={route.token} />}
+      {route.name === 'room' && <Room key={route.id} id={route.id} />}
       {route.name === 'unknown' && (
         <div className="page-center">
           <div>

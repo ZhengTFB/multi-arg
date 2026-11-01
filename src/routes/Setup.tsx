@@ -5,6 +5,8 @@ import { navigate } from '../lib/router'
 import { load, save } from '../lib/storage'
 import { t } from '../lib/copy'
 import type { CopyKey } from '../lib/copy'
+import { createRoom } from '../lib/net'
+import { saveSession } from '../lib/session'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 
@@ -41,10 +43,31 @@ export function Setup({ url, preset }: Props) {
     setModules((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]))
   }
 
-  const start = () => {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  const start = async () => {
+    if (busy) return
+    setBusy(true)
+    setError('')
     save('name', name.trim())
     save('modules', modules)
-    navigate('/r/8472#demo')
+
+    try {
+      const state = await createRoom({
+        url,
+        modules,
+        name: name.trim() || '访客',
+        title,
+      })
+      saveSession(state.room.id, { id: state.member.id, name: state.member.name })
+      navigate(`/r/${state.room.id}`)
+    } catch (err) {
+      const code = err instanceof Error ? err.message : 'failed'
+      setError(code === 'bad_url' ? t('home.err.url') : '房间没建起来，检查一下服务是否在跑。')
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
@@ -113,9 +136,17 @@ export function Setup({ url, preset }: Props) {
         </section>
 
         <div className="setup-actions">
-          <Button variant="primary" size="lg" block data-copy="setup.start" onClick={start}>
-            {t('setup.start')}
+          <Button
+            variant="primary"
+            size="lg"
+            block
+            data-copy="setup.start"
+            disabled={busy}
+            onClick={start}
+          >
+            {busy ? '正在开房…' : t('setup.start')}
           </Button>
+          {error && <p className="notice">{error}</p>}
         </div>
       </main>
     </div>

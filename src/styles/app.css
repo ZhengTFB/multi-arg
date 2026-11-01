@@ -1333,10 +1333,17 @@ textarea {
 }
 
 .panel-scroll {
+  display: flex;
   flex: 1;
+  flex-direction: column;
   padding: 0 14px 12px;
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+
+/* 消息不多时贴着输入框，不要让它们孤零零挂在顶上 */
+.panel-scroll > :first-child {
+  margin-top: auto;
 }
 
 .searchbar {

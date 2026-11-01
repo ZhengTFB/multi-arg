@@ -63,5 +63,10 @@ export default defineConfig({
   server: {
     port: 5173,
     fs: { strict: true },
+    // 开发时把接口和长连接转给本地 Node 后端（npm run server）
+    proxy: {
+      '/api': { target: 'http://127.0.0.1:8787', changeOrigin: true },
+      '/ws': { target: 'ws://127.0.0.1:8787', ws: true },
+    },
   },
 })
