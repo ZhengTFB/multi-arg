@@ -8,7 +8,6 @@ import { t } from '../../lib/copy'
 interface Props {
   items: Item[]
   members: Member[]
-  onAdd: (name: string, note: string) => void
 }
 
 interface Node {
@@ -27,9 +26,7 @@ interface Edge {
 const NODE_W = 120
 const NODE_H = 48
 
-export function People({ items, members, onAdd }: Props) {
-  const [draftName, setDraftName] = useState('')
-  const [draftNote, setDraftNote] = useState('')
+export function People({ items, members }: Props) {
   const [offsets, setOffsets] = useState<Record<string, { x: number; y: number }>>({})
   const dragRef = useRef<{ id: string; x: number; y: number; baseX: number; baseY: number } | null>(
     null,
@@ -115,42 +112,12 @@ export function People({ items, members, onAdd }: Props) {
     dragRef.current = null
   }
 
-  const commit = () => {
-    const name = draftName.trim()
-    if (!name) return
-    onAdd(name, draftNote.trim())
-    setDraftName('')
-    setDraftNote('')
-  }
-
   return (
     <div className="module">
       <div className="module-head">
         <span>
           {nodes.length} 人 · {edges.length} 条关系
         </span>
-      </div>
-
-      <div className="module-add">
-        <input
-          value={draftName}
-          placeholder={t('modules.add.person')}
-          onChange={(e) => setDraftName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.nativeEvent.isComposing) commit()
-          }}
-        />
-        <input
-          value={draftNote}
-          placeholder="备注（可空）"
-          onChange={(e) => setDraftNote(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.nativeEvent.isComposing) commit()
-          }}
-        />
-        <button type="button" className="tag tag--hit" onClick={commit} disabled={!draftName.trim()}>
-          {t('modules.add')}
-        </button>
       </div>
 
       {nodes.length === 0 ? (

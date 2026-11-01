@@ -5,15 +5,11 @@ import { t } from '../../lib/copy'
 
 interface Props {
   items: Item[]
-  onAdd: (account: string, password: string, usage: string) => void
   onToggleVerify: (item: Item) => void
 }
 
-export function Secrets({ items, onAdd, onToggleVerify }: Props) {
+export function Secrets({ items, onToggleVerify }: Props) {
   const [revealed, setRevealed] = useState<Set<string>>(new Set())
-  const [account, setAccount] = useState('')
-  const [password, setPassword] = useState('')
-  const [usage, setUsage] = useState('')
 
   const list = items
     .filter((i) => i.type === 'secret' && i.secret)
@@ -28,38 +24,10 @@ export function Secrets({ items, onAdd, onToggleVerify }: Props) {
     })
   }
 
-  const commit = () => {
-    if (!account.trim() || !password.trim()) return
-    onAdd(account.trim(), password.trim(), usage.trim())
-    setAccount('')
-    setPassword('')
-    setUsage('')
-  }
-
   return (
     <div className="module">
       <div className="module-head">
         <span>{list.length} 条密码</span>
-      </div>
-
-      <div className="module-add module-add--stack">
-        <input
-          value={account}
-          placeholder="账号 / 用途名"
-          onChange={(e) => setAccount(e.target.value)}
-        />
-        <input value={password} placeholder="密码" onChange={(e) => setPassword(e.target.value)} />
-        <div className="module-add-row">
-          <input value={usage} placeholder="用在哪（可空）" onChange={(e) => setUsage(e.target.value)} />
-          <button
-            type="button"
-            className="tag tag--hit"
-            onClick={commit}
-            disabled={!account.trim() || !password.trim()}
-          >
-            {t('modules.add')}
-          </button>
-        </div>
       </div>
 
       {list.length === 0 ? (

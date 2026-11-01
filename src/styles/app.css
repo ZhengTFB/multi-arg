@@ -1559,10 +1559,108 @@ textarea {
 /* 内容区 */
 
 .panel-body {
+  position: relative;
   display: flex;
   flex: 1;
   flex-direction: column;
   min-height: 0;
+}
+
+/* 各模块右下角的新建按钮 */
+.fab {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--bg);
+  background: var(--earth);
+  border-radius: 50%;
+  box-shadow: 0 6px 18px rgba(92, 64, 51, 0.28);
+  transition: transform 0.3s var(--ease);
+}
+
+.fab:hover {
+  transform: scale(1.05);
+}
+
+.fab:active {
+  transform: scale(0.94);
+}
+
+.compose {
+  position: absolute;
+  right: 14px;
+  bottom: 72px;
+  left: 14px;
+  z-index: 7;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  background: #fff;
+  border: 1px solid var(--linen);
+  border-radius: var(--r-card-sm);
+  box-shadow: var(--shadow-deep);
+  animation: compose-in 0.28s var(--ease);
+}
+
+@keyframes compose-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.compose-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--earth-2);
+}
+
+.compose-field {
+  height: 34px;
+  padding: 0 10px;
+  font-size: 13px;
+  color: var(--earth);
+  border: 1px solid var(--linen);
+  border-radius: 9px;
+  outline: none;
+}
+
+.compose-field:focus {
+  border-color: var(--sage-27);
+}
+
+.compose-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.compose-cancel {
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--earth-2);
+}
+
+.compose-ok {
+  padding: 6px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--bg);
+  background: var(--earth);
+  border-radius: 999px;
 }
 
 .panel-scroll {
@@ -1574,8 +1672,9 @@ textarea {
   overscroll-behavior: contain;
 }
 
-/* 消息不多时贴着输入框，不要让它们孤零零挂在顶上 */
-.panel-scroll > :first-child {
+/* 消息不多时贴着输入框；模块视图仍然从顶部开始排 */
+.panel-scroll > .feed,
+.panel-scroll > .notes {
   margin-top: auto;
 }
 
