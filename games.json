@@ -1,4 +1,4 @@
-﻿{
+{
   "items": [
     {
       "slug": "missing",
@@ -10,31 +10,7 @@
       "hasSearch": false,
       "searchParam": "",
       "embeddable": true,
-      "note": "missing.minis.yoroll.ai，带 config 与 lang 参数，别把 query 去掉。"
-    },
-    {
-      "slug": "bilin-forum",
-      "title": "比邻论坛",
-      "author": "",
-      "url": "https://anninganya-glitch.github.io/My-Secret-Garden/",
-      "cover": "/covers/bilin-forum.jpg",
-      "minutes": null,
-      "hasSearch": false,
-      "searchParam": "",
-      "embeddable": true,
-      "note": "根路径是提示页，点「开始」进 /new/。入口用根路径，别改成 /new/。"
-    },
-    {
-      "slug": "involuntary-appetite",
-      "title": "非自愿摄入",
-      "author": "",
-      "url": "https://contemporary.minis.yoroll.ai/",
-      "cover": "/covers/involuntary-appetite.jpg",
-      "minutes": null,
-      "hasSearch": false,
-      "searchParam": "",
-      "embeddable": true,
-      "note": "Vercel，无嵌入限制。页面里的输入框是跟 NPC 对话，不是站内搜索，别接进搜索框。资源走 lineargame.top 和 cloudfront，站内有 <base> 标签。"
+      "note": "带 config 与 lang 参数，别把 query 去掉。"
     },
     {
       "slug": "yeshanbichu",
@@ -47,6 +23,282 @@
       "searchParam": "",
       "embeddable": true,
       "note": "missing 同系列站点。"
+    },
+    {
+      "slug": "hui-sheng-2",
+      "title": "回声",
+      "author": "",
+      "url": "https://dkfile.istester.com/zibaoyu/huisheng.html",
+      "cover": "/covers/miyeji/miyeji-01.webp",
+      "minutes": null,
+      "hasSearch": false,
+      "searchParam": "",
+      "embeddable": true,
+      "note": "来自谜页集目录，已检查无 X-Frame-Options / frame-ancestors 限制。"
+    },
+    {
+      "slug": "ji-sheng-zhi-tai",
+      "title": "寄生之胎",
+      "author": "",
+      "url": "https://veiled-diploma-ru59c.ship.place/",
+      "cover": "/covers/miyeji/miyeji-02.webp",
+      "minutes": null,
+      "hasSearch": false,
+      "searchParam": "",
+      "embeddable": true,
+      "note": "来自谜页集目录，已检查无 X-Frame-Options / frame-ancestors 限制。"
+    },
+    {
+      "slug": "fang-sheng-guo-ying-hui-meng-jian-dian-zi-shui-guo-ma-demo",
+      "title": "仿生果蝇会梦见电子水果吗？DEMO",
+      "author": "",
+      "url": "https://game.virtualoverapp.com/game/11233",
+      "cover": "/covers/miyeji/miyeji-03.webp",
+      "minutes": null,
+      "hasSearch": false,
+      "searchParam": "",
+      "embeddable": true,
+      "note": "来自谜页集目录，已检查无 X-Frame-Options / frame-ancestors 限制。"
+    },
+    {
+      "slug": "ling-xun",
+      "title": "凌汛",
+      "author": "",
+      "url": "http://8.213.151.153/",
+      "cover": "/covers/miyeji/miyeji-04.webp",
+      "minutes": null,
+      "hasSearch": false,
+      "searchParam": "",
+      "embeddable": true,
+      "note": "来自谜页集目录，已检查无 X-Frame-Options / frame-ancestors 限制。"
+    },
+    {
+      "slug": "xu-ni-qu-zheng-xi-tong",
+      "title": "虚拟取证系统",
+      "author": "",
+      "url": "https://4kpu6nsfkspzf.doubao.link/app/app_17h3w4vwkar",
+      "cover": "/covers/miyeji/miyeji-05.webp",
+      "minutes": null,
+      "hasSearch": false,
+      "searchParam": "",
+      "embeddable": true,
+      "note": "来自谜页集目录，已检查无 X-Frame-Options / frame-ancestors 限制。"
+    },
+    {
+      "slug": "hu-die-hui-chi-diao-zi-ji-de-yong-ma",
+      "title": "蝴蝶会吃掉自己的蛹吗",
+      "author": "",
+      "url": "https://jellyfish-king.github.io/takabutterfly/gamebutterfly/data/Queq.html",
+      "cover": "/covers/miyeji/miyeji-06.webp",
+      "minutes": null,
+      "hasSearch": false,
+      "searchParam": "",
+      "embeddable": true,
+      "note": "来自谜页集目录，已检查无 X-Frame-Options / frame-ancestors 限制。"
+    },
+    {
+      "slug": "deng-ta-di-qi-ge-hui-xiang",
+      "title": "灯塔·第七个回响",
+      "author": "",
+      "url": "https://potent-child-58hn8.ship.place/",
+      "cover": "/covers/miyeji/miyeji-07.webp",
+      "minutes": null,
+      "hasSearch": false,
+      "searchParam": "",
+      "embeddable": true,
+      "note": "来自谜页集目录，已检查无 X-Frame-Options / frame-ancestors 限制。"
+    },
+    {
+      "slug": "he-deng-mi-shi",
+      "title": "河灯秘事",
+      "author": "",
+      "url": "https://xiaoxiong-game.github.io/xiaoming/",
+      "cover": "/covers/miyeji/miyeji-08.webp",
+      "minutes": null,
+      "hasSearch": false,
+      "searchParam": "",
+      "embeddable": true,
+      "note": "来自谜页集目录，已检查无 X-Frame-Options / frame-ancestors 限制。"
+    },
+    {
+      "slug": "qian-nian-chong-di-yi-bu",
+      "title": "千年虫 第一部",
+      "author": "",
+      "url": "https://qiannianchonggame.github.io/",
+      "cover": "/covers/miyeji/miyeji-09.webp",
+      "minutes": null,
+      "hasSearch": false,
+      "searchParam": "",
+      "embeddable": true,
+      "note": "来自谜页集目录，已检查无 X-Frame-Options / frame-ancestors 限制。"
+    },
+    {
+      "slug": "wei-yi-jie",
+      "title": "唯一解",
+      "author": "",
+      "url": "https://dcd887.github.io/deduction-h5/",
+      "cover": "/covers/miyeji/miyeji-10.webp",
+      "minutes": null,
+      "hasSearch": false,
+      "searchParam": "",
+      "embeddable": true,
+      "note": "来自谜页集目录，已检查无 X-Frame-Options / frame-ancestors 限制。"
+    },
+    {
+      "slug": "yan-cheng-dong-wu-yuan",
+      "title": "雁城动物园",
+      "author": "",
+      "url": "https://yanchengzoo.pages.dev/",
+      "cover": "/covers/miyeji/miyeji-11.webp",
+      "minutes": null,
+      "hasSearch": false,
+      "searchParam": "",
+      "embeddable": true,
+      "note": "来自谜页集目录，已检查无 X-Frame-Options / frame-ancestors 限制。"
+    },
+    {
+      "slug": "yi-sheng-bei-zhi-ming-can-ye",
+      "title": "以圣杯之名：残夜",
+      "author": "",
+      "url": "https://lovely-unicorn-b052a3.netlify.app/",
+      "cover": "/covers/miyeji/miyeji-12.webp",
+      "minutes": null,
+      "hasSearch": false,
+      "searchParam": "",
+      "embeddable": true,
+      "note": "来自谜页集目录，已检查无 X-Frame-Options / frame-ancestors 限制。"
+    },
+    {
+      "slug": "wo-de-yu-tian-ri-ji",
+      "title": "我的雨天日记",
+      "author": "",
+      "url": "https://zcmq85.kicp.fun/",
+      "cover": "/covers/miyeji/miyeji-14.webp",
+      "minutes": null,
+      "hasSearch": false,
+      "searchParam": "",
+      "embeddable": true,
+      "note": "来自谜页集目录，已检查无 X-Frame-Options / frame-ancestors 限制。"
+    },
+    {
+      "slug": "yi-tu-xing-zhe-xu-zhang",
+      "title": "异途行者·序章",
+      "author": "",
+      "url": "https://4m0x8drgw8ndm.doubao.link/app/app_17h0emcxqv2",
+      "cover": "/covers/miyeji/miyeji-15.webp",
+      "minutes": null,
+      "hasSearch": false,
+      "searchParam": "",
+      "embeddable": true,
+      "note": "来自谜页集目录，已检查无 X-Frame-Options / frame-ancestors 限制。"
+    },
+    {
+      "slug": "you-jian-tui-li-guan-2-wu-shan",
+      "title": "有间推理馆2：雾山",
+      "author": "",
+      "url": "https://youjian.icu/",
+      "cover": "/covers/miyeji/miyeji-16.webp",
+      "minutes": null,
+      "hasSearch": false,
+      "searchParam": "",
+      "embeddable": true,
+      "note": "来自谜页集目录，已检查无 X-Frame-Options / frame-ancestors 限制。"
+    },
+    {
+      "slug": "wu-gang-dang-an-san-ling-qi-hao-fang",
+      "title": "雾港档案 · 三〇七号房",
+      "author": "",
+      "url": "https://fog-harbor-files.app.workbuddy.host/?sharecode=NFFIP53ZNM",
+      "cover": "/covers/miyeji/miyeji-17.webp",
+      "minutes": null,
+      "hasSearch": false,
+      "searchParam": "",
+      "embeddable": true,
+      "note": "来自谜页集目录，已检查无 X-Frame-Options / frame-ancestors 限制。"
+    },
+    {
+      "slug": "ben-gong-zai-zi-jin-cheng-si-guo-108-ci",
+      "title": "本宫在紫禁城死过108次",
+      "author": "",
+      "url": "https://www.lzhu.cn/app-detail/IGw3htFmnm1KLEaE",
+      "cover": "/covers/miyeji/miyeji-18.webp",
+      "minutes": null,
+      "hasSearch": false,
+      "searchParam": "",
+      "embeddable": true,
+      "note": "来自谜页集目录，已检查无 X-Frame-Options / frame-ancestors 限制。"
+    },
+    {
+      "slug": "jia-mian-lian-ren",
+      "title": "假面恋人",
+      "author": "",
+      "url": "https://fakelovw.netlify.app/",
+      "cover": "/covers/miyeji/miyeji-19.webp",
+      "minutes": null,
+      "hasSearch": false,
+      "searchParam": "",
+      "embeddable": true,
+      "note": "来自谜页集目录，已检查无 X-Frame-Options / frame-ancestors 限制。"
+    },
+    {
+      "slug": "ye-ban-he-dui",
+      "title": "夜班核对",
+      "author": "",
+      "url": "https://astonishing-salamander-17a606.netlify.app/",
+      "cover": "/covers/miyeji/miyeji-20.webp",
+      "minutes": null,
+      "hasSearch": false,
+      "searchParam": "",
+      "embeddable": true,
+      "note": "来自谜页集目录，已检查无 X-Frame-Options / frame-ancestors 限制。"
+    },
+    {
+      "slug": "you-ming-gu-wen",
+      "title": "幽明顾问",
+      "author": "",
+      "url": "https://lumi.66rpg.com/works/4tza1ls6mcqo",
+      "cover": "/covers/miyeji/miyeji-21.webp",
+      "minutes": null,
+      "hasSearch": false,
+      "searchParam": "",
+      "embeddable": true,
+      "note": "来自谜页集目录，已检查无 X-Frame-Options / frame-ancestors 限制。"
+    },
+    {
+      "slug": "qing-jian-ru-zhi-ling",
+      "title": "请键入指令",
+      "author": "",
+      "url": "https://qingjianruzhiling01-5bf5a9.netlify.app/",
+      "cover": "/covers/miyeji/miyeji-22.webp",
+      "minutes": null,
+      "hasSearch": false,
+      "searchParam": "",
+      "embeddable": true,
+      "note": "来自谜页集目录，已检查无 X-Frame-Options / frame-ancestors 限制。"
+    },
+    {
+      "slug": "yu-li-zhong-xue",
+      "title": "育礼中学",
+      "author": "",
+      "url": "https://yuli.3fish.top/",
+      "cover": "/covers/miyeji/miyeji-23.webp",
+      "minutes": null,
+      "hasSearch": false,
+      "searchParam": "",
+      "embeddable": true,
+      "note": "来自谜页集目录，已检查无 X-Frame-Options / frame-ancestors 限制。"
+    },
+    {
+      "slug": "xun-zhao-shi-you-lin-wei",
+      "title": "寻找室友林微",
+      "author": "",
+      "url": "https://mike798-cloud.github.io/Xun-Zhao-Lin-Wei/",
+      "cover": "/covers/miyeji/miyeji-24.webp",
+      "minutes": null,
+      "hasSearch": false,
+      "searchParam": "",
+      "embeddable": true,
+      "note": "来自谜页集目录，已检查无 X-Frame-Options / frame-ancestors 限制。"
     }
   ]
 }
