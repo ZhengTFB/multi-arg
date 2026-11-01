@@ -13,6 +13,8 @@ interface Props {
   query: string
   onStar: (item: Item) => void
   onExclude: (item: Item) => void
+  /** 直接在笔记里写一条，不经过聊天 */
+  onAdd: (text: string) => void
 }
 
 /**
@@ -28,15 +30,23 @@ export function NoteList({
   query,
   onStar,
   onExclude,
+  onAdd,
 }: Props) {
   const [showExcluded, setShowExcluded] = useState(false)
+  const [draft, setDraft] = useState('')
 
   const byId = useMemo(() => new Map(members.map((m) => [m.id, m])), [members])
 
+  // 笔记只收 type === 'note'；公共笔记是「被星标的任何一条」，聊天也能星进来
+  const all = useMemo(
+    () => items.filter((i) => !i.refId && i.type !== 'system'),
+    [items],
+  )
+
   const list = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return items
-      .filter((i) => i.type === 'note' && !i.refId)
+    return all
+      .filter((i) => i.type === 'note')
       .filter((i) => {
         if (memberFilter === 'all') return true
         if (memberFilter === 'me') return i.authorId === meId
@@ -44,11 +54,41 @@ export function NoteList({
       })
       .filter((i) => (q ? (i.text ?? '').toLowerCase().includes(q) : true))
       .sort((a, b) => b.createdAt - a.createdAt)
-  }, [items, memberFilter, query, meId])
+  }, [all, memberFilter, query, meId])
 
-  const starred = list.filter((i) => i.starred && i.status !== 'excluded')
+  const starred = useMemo(
+    () => all.filter((i) => i.starred && i.status !== 'excluded').sort((a, b) => b.createdAt - a.createdAt),
+    [all],
+  )
   const excluded = list.filter((i) => i.status === 'excluded')
   const normal = list.filter((i) => !i.starred && i.status !== 'excluded')
+
+  const commit = () => {
+    const text = draft.trim()
+    if (!text) return
+    onAdd(text)
+    setDraft('')
+  }
+
+  const addRow = (
+    <form
+      className="note-add"
+      onSubmit={(e) => {
+        e.preventDefault()
+        commit()
+      }}
+    >
+      <input
+        value={draft}
+        placeholder="写一条笔记"
+        aria-label="写一条笔记"
+        onChange={(e) => setDraft(e.target.value)}
+      />
+      <button type="submit" disabled={!draft.trim()}>
+        记
+      </button>
+    </form>
+  )
 
   const renderRow = (item: Item) => {
     const author = byId.get(item.authorId)
@@ -56,7 +96,7 @@ export function NoteList({
     return (
       <div className="note-line" data-excluded={item.status === 'excluded'} key={item.id}>
         <time className="note-line-time mono">{clock(item.createdAt)}</time>
-        <span className="note-line-text">{item.text}</span>
+        <span className="note-line-text">{item.text ?? item.title ?? item.url ?? '（链接）'}</span>
         <span className="note-line-author">
           <i style={{ background: author?.color ?? 'var(--line)' }} />
           {author?.name ?? '有人'}
@@ -84,6 +124,7 @@ export function NoteList({
   if (list.length === 0) {
     return (
       <div className="notes">
+        {addRow}
         <p className="feed-empty">{t('room.note.empty')}</p>
       </div>
     )
@@ -91,6 +132,7 @@ export function NoteList({
 
   return (
     <div className="notes">
+      {addRow}
       {starOnly ? (
         <section className="note-section">
           <div className="note-section-head">

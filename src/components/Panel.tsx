@@ -45,6 +45,7 @@ interface Props {
   onAddSecret: (account: string, password: string, usage: string) => void
   onAddRelation: (from: string, to: string, label: string) => void
   onReorderTimeline: (ids: string[]) => void
+  onAddNote: (text: string) => void
   onToggleKeyword: (item: Item) => void
   onToggleVerify: (item: Item) => void
   onReplayOnboarding: () => void
@@ -129,6 +130,7 @@ export function Panel(props: Props) {
     onAddSecret,
     onAddRelation,
     onReorderTimeline,
+    onAddNote,
     onToggleKeyword,
     onToggleVerify,
     onReplayOnboarding,
@@ -369,6 +371,7 @@ export function Panel(props: Props) {
               query={query}
               onStar={onStar}
               onExclude={onExclude}
+              onAdd={onAddNote}
             />
           )}
 

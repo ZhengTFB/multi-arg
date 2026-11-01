@@ -15,7 +15,8 @@
     "qa:smoke": "node scripts/qa/smoke.mjs",
     "qa:live": "node scripts/qa/live.mjs",
     "qa:ui": "node scripts/qa/ui.mjs",
-    "qa:modules": "node scripts/qa/modules.mjs"
+    "qa:modules": "node scripts/qa/modules.mjs",
+    "qa:share": "node scripts/qa/share.mjs"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",

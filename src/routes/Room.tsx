@@ -304,9 +304,14 @@ export function Room({ id }: Props) {
     (item: Item) => {
       if (!item.url) return
       const url = new URL(item.url, location.origin).href
+      // 同一个地址：不新开标签，直接重载当前框，否则看起来像「点了没反应」
+      if (url === activeTab?.url) {
+        reloadFrame()
+        return
+      }
       openTab(url, item.title)
     },
-    [openTab],
+    [activeTab?.url, openTab, reloadFrame],
   )
 
   const searchInGame = useCallback(
@@ -363,7 +368,7 @@ export function Room({ id }: Props) {
         socket.current?.send({
           t: 'item.add',
           item: {
-            type: 'note',
+            type: 'msg',
             ...base,
             text: rest.join(' ') || text,
             mentions: target ? [target.id] : [],
@@ -372,7 +377,7 @@ export function Room({ id }: Props) {
         return
       }
 
-      socket.current?.send({ t: 'item.add', item: { type: 'note', ...base, text } })
+      socket.current?.send({ t: 'item.add', item: { type: 'msg', ...base, text } })
     },
     [frameSrc, members],
   )
@@ -626,6 +631,7 @@ export function Room({ id }: Props) {
       addItem({ type: 'secret', secret: { account, password, usage, verified: false } }),
     onAddRelation: (from: string, to: string, label: string) =>
       addItem({ type: 'person', relations: [{ from, to, label }] }),
+    onAddNote: (text: string) => addItem({ type: 'note', text }),
     onReorderTimeline: (ids: string[]) => {
       ids.forEach((id, index) => socket.current?.send({ t: 'item.patch', id, patch: { order: index } }))
     },

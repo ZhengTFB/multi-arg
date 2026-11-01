@@ -24,7 +24,7 @@ type Block =
   | { kind: 'sep'; key: string; label: string }
   | { kind: 'msg'; item: Item; grouped: boolean; kids: Item[] }
 
-const FEED_TYPES = new Set(['link', 'note', 'system'])
+const FEED_TYPES = new Set(['msg', 'link', 'system'])
 const GROUP_MS = 3 * 60_000
 
 function dayKey(ts: number): string {

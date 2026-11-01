@@ -1,6 +1,7 @@
 export type ModuleKey = 'note' | 'keyword' | 'person' | 'secret' | 'timeline'
 
-export type ItemType = 'link' | 'note' | 'keyword' | 'person' | 'secret' | 'event' | 'system'
+/** msg = 聊天消息，note = 笔记，两者不混 */
+export type ItemType = 'msg' | 'link' | 'note' | 'keyword' | 'person' | 'secret' | 'event' | 'system'
 
 export interface Game {
   url: string

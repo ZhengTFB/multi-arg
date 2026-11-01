@@ -27,6 +27,8 @@ export function GameFrame({ src, phone, reloadKey, stuck, chrome, onLoad, onRelo
             src={src}
             title="游戏"
             allow="clipboard-write; fullscreen"
+            // 不给 allow-popups / allow-top-navigation：游戏里的 target=_blank 不会把用户甩到系统浏览器
+            sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-downloads"
             onLoad={onLoad}
           />
           {stuck && (

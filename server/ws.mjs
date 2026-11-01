@@ -152,7 +152,7 @@ async function handle(ws, msg, roomId, memberId) {
     }
     const input = msg.item ?? {}
     const type = String(input.type ?? 'note')
-    if (!['link', 'note', 'keyword', 'secret', 'person', 'event', 'system'].includes(type)) {
+    if (!['msg', 'link', 'note', 'keyword', 'secret', 'person', 'event', 'system'].includes(type)) {
       send(ws, { t: 'error', code: 'bad_type' })
       return
     }
