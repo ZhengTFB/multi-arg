@@ -39,6 +39,7 @@ const writable = new Set([
   'mentions',
   'starred',
   'status',
+  'order',
 ])
 
 export function attachWs(server) {
@@ -188,12 +189,13 @@ function handle(ws, msg, roomId, memberId) {
       send(ws, { t: 'error', code: 'not_found' })
       return
     }
-    if (row.author_id !== memberId) {
+    const patch = msg.patch ?? {}
+    // 时间线的排序是房间级的，谁都可以调；其余字段只有作者能改
+    const onlyOrder = Object.keys(patch).every((key) => key === 'order')
+    if (row.author_id !== memberId && !onlyOrder) {
       send(ws, { t: 'error', code: 'not_owner' })
       return
     }
-
-    const patch = msg.patch ?? {}
     const current = rowToItem(row)
     const next = { ...current }
 

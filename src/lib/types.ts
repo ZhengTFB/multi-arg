@@ -40,6 +40,8 @@ export interface Item {
   pageUrl?: string
   refId?: string
   mentions?: string[]
+  /** 时间线里的显示顺序，越小越靠前 */
+  order?: number
   url?: string
   title?: string
   text?: string

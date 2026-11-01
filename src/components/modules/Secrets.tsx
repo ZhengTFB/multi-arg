@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { Check, Circle, Eye, EyeOff } from 'lucide-react'
+import { Check, Circle } from 'lucide-react'
 import type { Item } from '../../lib/types'
 import { t } from '../../lib/copy'
 
@@ -9,20 +8,9 @@ interface Props {
 }
 
 export function Secrets({ items, onToggleVerify }: Props) {
-  const [revealed, setRevealed] = useState<Set<string>>(new Set())
-
   const list = items
     .filter((i) => i.type === 'secret' && i.secret)
     .sort((a, b) => b.createdAt - a.createdAt)
-
-  const toggle = (id: string) => {
-    setRevealed((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
 
   return (
     <div className="module">
@@ -35,7 +23,6 @@ export function Secrets({ items, onToggleVerify }: Props) {
       ) : (
         list.map((item) => {
           const secret = item.secret!
-          const open = revealed.has(item.id)
           return (
             <div key={item.id} className="secret-card">
               <div className="secret-top">
@@ -43,18 +30,7 @@ export function Secrets({ items, onToggleVerify }: Props) {
                 {secret.verified && <span className="tag tag--hit">{t('secret.verified')}</span>}
               </div>
 
-              <div className="secret-pass">
-                <span>{open ? secret.password : '••••••'}</span>
-                <button
-                  type="button"
-                  className="icon-btn"
-                  style={{ width: 22, height: 22 }}
-                  aria-label={open ? '遮住密码' : '显示密码'}
-                  onClick={() => toggle(item.id)}
-                >
-                  {open ? <EyeOff size={13} strokeWidth={1.5} /> : <Eye size={13} strokeWidth={1.5} />}
-                </button>
-              </div>
+              <div className="secret-pass">{secret.password}</div>
 
               {secret.usage && <p className="secret-usage">{secret.usage}</p>}
 

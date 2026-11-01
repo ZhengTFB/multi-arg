@@ -43,6 +43,8 @@ interface Props {
   onAddPerson: (name: string, note: string) => void
   onAddEvent: (at: string, text: string) => void
   onAddSecret: (account: string, password: string, usage: string) => void
+  onAddRelation: (from: string, to: string, label: string) => void
+  onReorderTimeline: (ids: string[]) => void
   onToggleKeyword: (item: Item) => void
   onToggleVerify: (item: Item) => void
   onReplayOnboarding: () => void
@@ -125,6 +127,8 @@ export function Panel(props: Props) {
     onAddPerson,
     onAddEvent,
     onAddSecret,
+    onAddRelation,
+    onReorderTimeline,
     onToggleKeyword,
     onToggleVerify,
     onReplayOnboarding,
@@ -368,10 +372,14 @@ export function Panel(props: Props) {
             />
           )}
 
-          {view === 'people' && <People items={items} members={members} />}
+          {view === 'people' && (
+            <People items={items} members={members} onAddRelation={onAddRelation} />
+          )}
           {view === 'keyword' && <Keywords items={items} onCycle={onToggleKeyword} />}
           {view === 'secret' && <Secrets items={items} onToggleVerify={onToggleVerify} />}
-          {view === 'timeline' && <Timeline items={items} members={members} />}
+          {view === 'timeline' && (
+            <Timeline items={items} members={members} onReorder={onReorderTimeline} />
+          )}
         </div>
 
         {compose && (

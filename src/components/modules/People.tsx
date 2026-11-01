@@ -8,6 +8,7 @@ import { t } from '../../lib/copy'
 interface Props {
   items: Item[]
   members: Member[]
+  onAddRelation: (from: string, to: string, label: string) => void
 }
 
 interface Node {
@@ -26,11 +27,18 @@ interface Edge {
 const NODE_W = 120
 const NODE_H = 48
 
-export function People({ items, members }: Props) {
+export function People({ items, members, onAddRelation }: Props) {
   const [offsets, setOffsets] = useState<Record<string, { x: number; y: number }>>({})
-  const dragRef = useRef<{ id: string; x: number; y: number; baseX: number; baseY: number } | null>(
-    null,
-  )
+  const [picked, setPicked] = useState<string[]>([])
+  const [label, setLabel] = useState('')
+  const dragRef = useRef<{
+    id: string
+    x: number
+    y: number
+    baseX: number
+    baseY: number
+    moved: boolean
+  } | null>(null)
   const svgRef = useRef<SVGSVGElement>(null)
 
   const { nodes, edges, width, height, pos } = useMemo(() => {
@@ -85,11 +93,18 @@ export function People({ items, members }: Props) {
     return { x: base.x + off.x, y: base.y + off.y }
   }
 
+  const togglePick = (id: string) => {
+    setPicked((prev) => {
+      if (prev.includes(id)) return prev.filter((n) => n !== id)
+      if (prev.length >= 2) return [id]
+      return [...prev, id]
+    })
+    setLabel('')
+  }
+
   const startDrag = (e: ReactPointerEvent<SVGGElement>, id: string) => {
-    const p = at(id)
-    if (!p) return
     const off = offsets[id] ?? { x: 0, y: 0 }
-    dragRef.current = { id, x: e.clientX, y: e.clientY, baseX: off.x, baseY: off.y }
+    dragRef.current = { id, x: e.clientX, y: e.clientY, baseX: off.x, baseY: off.y, moved: false }
     e.currentTarget.setPointerCapture(e.pointerId)
     e.stopPropagation()
   }
@@ -97,19 +112,30 @@ export function People({ items, members }: Props) {
   const moveDrag = (e: ReactPointerEvent<SVGGElement>) => {
     const d = dragRef.current
     if (!d) return
+    const dx = e.clientX - d.x
+    const dy = e.clientY - d.y
+    if (Math.abs(dx) + Math.abs(dy) > 4) d.moved = true
+    if (!d.moved) return
     const svg = svgRef.current
     const scale = svg ? width / svg.clientWidth : 1
     setOffsets((prev) => ({
       ...prev,
-      [d.id]: {
-        x: d.baseX + (e.clientX - d.x) * scale,
-        y: d.baseY + (e.clientY - d.y) * scale,
-      },
+      [d.id]: { x: d.baseX + dx * scale, y: d.baseY + dy * scale },
     }))
   }
 
   const endDrag = () => {
+    const d = dragRef.current
     dragRef.current = null
+    if (d && !d.moved) togglePick(d.id)
+  }
+
+  const commitRelation = () => {
+    if (picked.length < 2) return
+    const text = label.trim()
+    onAddRelation(picked[0], picked[1], text)
+    setPicked([])
+    setLabel('')
   }
 
   return (
@@ -118,7 +144,38 @@ export function People({ items, members }: Props) {
         <span>
           {nodes.length} 人 · {edges.length} 条关系
         </span>
+        {picked.length === 0 && <span className="people-hint">点两个人连一条线</span>}
       </div>
+
+      {picked.length > 0 && (
+        <div className="rel-card">
+          <p className="rel-pair">
+            {picked[0]} <span>→</span> {picked[1] ?? '…'}
+          </p>
+          {picked.length === 2 ? (
+            <div className="rel-input">
+              <input
+                value={label}
+                autoFocus
+                placeholder="他们的关系，比如 同乡 / 上下级"
+                onChange={(e) => setLabel(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.nativeEvent.isComposing) commitRelation()
+                  if (e.key === 'Escape') setPicked([])
+                }}
+              />
+              <button type="button" className="rel-ok" onClick={commitRelation}>
+                添加
+              </button>
+              <button type="button" className="rel-cancel" onClick={() => setPicked([])}>
+                取消
+              </button>
+            </div>
+          ) : (
+            <p className="rel-tip">再点一个人</p>
+          )}
+        </div>
+      )}
 
       {nodes.length === 0 ? (
         <p className="feed-empty">{t('people.empty')}</p>
@@ -168,10 +225,12 @@ export function People({ items, members }: Props) {
               if (!p) return null
               const x = p.x - NODE_W / 2
               const y = p.y - NODE_H / 2
+              const active = picked.includes(n.id)
               return (
                 <g
                   key={n.id}
                   className="people-node"
+                  data-active={active}
                   onPointerDown={(e) => startDrag(e, n.id)}
                   onPointerMove={moveDrag}
                   onPointerUp={endDrag}
@@ -185,9 +244,9 @@ export function People({ items, members }: Props) {
                     height={NODE_H}
                     rx={14}
                     ry={14}
-                    fill="#FFFFFF"
+                    fill={active ? '#F3ECE2' : '#FFFFFF'}
                     stroke={n.color}
-                    strokeWidth={1.5}
+                    strokeWidth={active ? 2.5 : 1.5}
                   />
                   <circle cx={x + 25} cy={p.y} r={12} fill={n.color} />
                   <text x={x + 25} y={p.y + 4} textAnchor="middle" className="people-node-ini">

@@ -624,6 +624,11 @@ export function Room({ id }: Props) {
     onAddEvent: (at: string, text: string) => addItem({ type: 'event', event: { at, text } }),
     onAddSecret: (account: string, password: string, usage: string) =>
       addItem({ type: 'secret', secret: { account, password, usage, verified: false } }),
+    onAddRelation: (from: string, to: string, label: string) =>
+      addItem({ type: 'person', relations: [{ from, to, label }] }),
+    onReorderTimeline: (ids: string[]) => {
+      ids.forEach((id, index) => socket.current?.send({ t: 'item.patch', id, patch: { order: index } }))
+    },
     onToggleKeyword,
     onToggleVerify,
     onReplayOnboarding: () => {

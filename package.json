@@ -14,7 +14,8 @@
     "shots": "node scripts/shots.mjs",
     "qa:smoke": "node scripts/qa/smoke.mjs",
     "qa:live": "node scripts/qa/live.mjs",
-    "qa:ui": "node scripts/qa/ui.mjs"
+    "qa:ui": "node scripts/qa/ui.mjs",
+    "qa:modules": "node scripts/qa/modules.mjs"
   },
   "dependencies": {
     "dagre": "^0.8.5",
