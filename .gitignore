@@ -25,3 +25,8 @@ Thumbs.db
 
 # 文案保存前留的上一版备份
 src/copy.json.bak
+
+# 房间数据库与本地临时产物
+.data/
+.data-shots/
+refs/

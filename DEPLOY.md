@@ -79,6 +79,7 @@ npm i -g @cloudbase/cli && tcb login && tcb hosting deploy dist -e <环境ID>
 
 - `npm run typecheck` 通过（src 与 worker 两份 tsconfig）。
 - `npm run build` 通过。
-- 后端接口/长连接：`refs/_qa/ws-test.mjs`（建房 → 双人 → 广播 → 越权拦截 → presence）全部通过。
-- 端到端：`refs/_qa/live.mjs`（两个浏览器同房收发、刷新后消息仍在）、`refs/_qa/create.mjs`（配置页真实开房 → 发消息 → 星标进公共笔记）通过。
+- 后端接口/长连接：`npm run qa:smoke`（建房 → 双人 → 广播 → 越权拦截 → presence）6/6 通过。
+- 端到端：`npm run qa:live`（两个浏览器同房收发、刷新后消息仍在）4/4 通过。
+- 配置页真实开房 → 发消息 → 星标进公共笔记，也手工验过。
 - 四张验收截图由 `npm run shots` 现起一个临时后端灌数据后截取（`docs/shots/`）。

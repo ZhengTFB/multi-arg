@@ -11,7 +11,9 @@
     "build": "vite build",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.worker.json",
     "preview": "vite preview",
-    "shots": "node scripts/shots.mjs"
+    "shots": "node scripts/shots.mjs",
+    "qa:smoke": "node scripts/qa/smoke.mjs",
+    "qa:live": "node scripts/qa/live.mjs"
   },
   "dependencies": {
     "dagre": "^0.8.5",
