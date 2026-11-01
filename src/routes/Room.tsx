@@ -54,6 +54,7 @@ export function Room({ id }: Props) {
   const [immersive, setImmersive] = useState(false)
   const [coachOpen, setCoachOpen] = useState(() => !has('coach'))
   const [notice, setNotice] = useState<ShareNotice | null>(null)
+  const [shareDraft, setShareDraft] = useState<string | null>(null)
   const [unread] = useState<Set<string>>(() => new Set())
 
   const socket = useRef<RoomSocket | null>(null)
@@ -433,11 +434,42 @@ export function Room({ id }: Props) {
     [frameSrc, room, addItem],
   )
 
+  /** 同源时能读到 iframe 真正停在哪一页；跨域只能拿到我们最后一次设置的地址 */
+  const readFrameUrl = useCallback((): string | null => {
+    try {
+      const frame = document.querySelector<HTMLIFrameElement>('.frame-body iframe')
+      const href = frame?.contentWindow?.location.href
+      if (!href || href === 'about:blank') return null
+      return href
+    } catch {
+      return null
+    }
+  }, [])
+
+  const doShare = useCallback(
+    (url: string, title: string) => {
+      addItem({ type: 'link', url, title, pageUrl: url })
+      showNotice({ id: `pending-${Date.now()}`, authorName: me?.name ?? '我', title })
+    },
+    [addItem, me?.name, showNotice],
+  )
+
   const sharePage = useCallback(() => {
     if (!activeTab) return
-    addItem({ type: 'link', url: activeTab.url, title: activeTab.title, pageUrl: activeTab.url })
-    showNotice({ id: `pending-${Date.now()}`, authorName: me?.name ?? '我', title: activeTab.title })
-  }, [activeTab, addItem, me, showNotice])
+    const real = readFrameUrl()
+    if (real && real !== activeTab.url) {
+      setTabUrl(activeTab.id, real, hostOf(real))
+      doShare(real, hostOf(real))
+      return
+    }
+    const crossOrigin = !real
+    // 跨域拿不到游戏内部地址：让用户确认/粘贴完整链接，避免两张卡都是同一个域名
+    if (crossOrigin) {
+      setShareDraft(activeTab.url)
+      return
+    }
+    doShare(activeTab.url, activeTab.title)
+  }, [activeTab, doShare, readFrameUrl, setTabUrl])
 
   useEffect(() => {
     const focus = (selector: string) => {
@@ -651,6 +683,45 @@ export function Room({ id }: Props) {
     onDismissNotice: () => setNotice(null),
   }
 
+  const shareDialog = shareDraft === null ? null : (
+    <div className="share-dialog" role="dialog" aria-modal="true">
+      <p className="share-dialog-title">分享哪一页？</p>
+      <p className="share-dialog-hint">
+        游戏翻到别的页面时，我们读不到它内部的网址。把当前地址粘进来，别人点卡片才会到同一页。
+      </p>
+      <input
+        value={shareDraft}
+        autoFocus
+        spellCheck={false}
+        onChange={(e) => setShareDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            const url = shareDraft.trim()
+            if (url) doShare(url, hostOf(url))
+            setShareDraft(null)
+          }
+          if (e.key === 'Escape') setShareDraft(null)
+        }}
+      />
+      <div className="share-dialog-actions">
+        <button type="button" className="share-dialog-cancel" onClick={() => setShareDraft(null)}>
+          取消
+        </button>
+        <button
+          type="button"
+          className="share-dialog-ok"
+          onClick={() => {
+            const url = shareDraft.trim()
+            if (url) doShare(url, hostOf(url))
+            setShareDraft(null)
+          }}
+        >
+          分享
+        </button>
+      </div>
+    </div>
+  )
+
   if (phone) {
     return (
       <div className="room room--phone" data-immersive={immersive || undefined}>
@@ -740,6 +811,7 @@ export function Room({ id }: Props) {
           </button>
         )}
 
+        {shareDialog}
         <Invite room={room} open={inviteOpen} onClose={() => setInviteOpen(false)} />
       </div>
     )
@@ -809,7 +881,8 @@ export function Room({ id }: Props) {
         </button>
       )}
 
-      <Invite room={room} open={inviteOpen} onClose={() => setInviteOpen(false)} />
+      {shareDialog}
+        <Invite room={room} open={inviteOpen} onClose={() => setInviteOpen(false)} />
     </div>
   )
 }
