@@ -527,9 +527,14 @@ export function Room({ id }: Props) {
       doShare(real, liveTitle || activeTab.title || hostOf(real))
       return
     }
+    // 走代理却还没加载完（iframe 还是 about:blank）：先按标签页登记的地址分享，别让人以为这站不能分享
+    if (!directHosts.has(hostOf(activeUrl))) {
+      doShare(activeUrl, activeTab.title || hostOf(activeUrl))
+      return
+    }
     // 只有直连（跨域）才读不到，这时才让用户粘一次
     setShareDraft(activeUrl)
-  }, [activeTab, activeUrl, doShare, liveTitle, liveUrl, readFrameUrl])
+  }, [activeTab, activeUrl, directHosts, doShare, liveTitle, liveUrl, readFrameUrl])
 
   /** 只有 mailto: / tel: 这类不是网页的链接才拦下来提示一句 */
   const frameAlert: FrameAlert | null = blocked && {
