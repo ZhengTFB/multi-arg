@@ -1,6 +1,12 @@
 # 部署
 
-**状态**：本地整套跑通了（页面 + 接口 + 长连接，单端口）；**公网还没部署**，卡在 CloudBase 的登录授权，见第四节。
+**状态**：本地整套跑通了（页面 + 接口 + 长连接，单端口）；公网跑在 Render：`https://multi-arg.onrender.com`。**新提交不会自动上线，需要在面板点一次 Manual Deploy**（`git push` 后线上仍是旧包，这是踩过的坑）。
+
+## 零、重新部署（改完代码必须做）
+
+1. `git push origin main`
+2. `dashboard.render.com` → `multi-arg` 服务 → 右上 **Manual Deploy** → **Deploy latest commit**
+3. 等 2–4 分钟，验收：`curl https://multi-arg.onrender.com/` 里 `assets/index-*.js` 的哈希要和本地 `dist/index.html` 一致；`curl -o NUL -w "%{http_code}" https://multi-arg.onrender.com/p/https/example.com/` 返回 200 且内容是被代理站点的 HTML（不是 500 多字节的 SPA 骨架，那说明还是旧包）。
 
 ## 一、本地 / 局域网（现在能用）
 
@@ -36,6 +42,15 @@ npm run dev        # 终端 2：前端 5173，/api 与 /ws 已代理到 8787
 ```
 
 `?edit=1` 的文案校对只在开发模式下可用（写回 `src/copy.json`）。
+
+## 二点五、游戏页为什么要走代理
+
+房间里打开的第三方网页统一走同源代理 `/p/<scheme>/<host>/<path>`（`server/proxy.mjs`）：
+
+- **分享**：同源之后 `iframe.contentWindow.location.href` 读得到，分享出去的是用户眼前那一页的真实长地址，而不是只有域名。
+- **点击**：服务端往 HTML 里注入桥接脚本，拦截站内跳转、`target=_blank`、`window.open`，统一 `postMessage` 回主页面；主页面按「同站就换页、站外就在房间里开新标签」处理，不会整页跳走。
+- **根相对链接**：`/about/` 这种按被代理站点的路径解释（自动补 `/p/https/host` 前缀），否则会落到我们自己的 SPA 上。
+- 抓不到（要登录、拒绝抓取）的站点退回直连 `directHosts`，此时才读不到地址，分享时会提示用户粘一次。
 
 ## 三、后端是什么
 
@@ -81,5 +96,6 @@ npm i -g @cloudbase/cli && tcb login && tcb hosting deploy dist -e <环境ID>
 - `npm run build` 通过。
 - 后端接口/长连接：`npm run qa:smoke`（建房 → 双人 → 广播 → 越权拦截 → presence）6/6 通过。
 - 端到端：`npm run qa:live`（两个浏览器同房收发、刷新后消息仍在）4/4 通过。
+- 代理桥接：起本地后端 + Edge 实测，同源可读 `location`、`/about/` 补前缀成 `/p/https/host/about/`、`target=_blank` 与 `window.open` 都带 `blank:true`、站外链接带真实 URL 交给房间开新标签。
 - 配置页真实开房 → 发消息 → 星标进公共笔记，也手工验过。
 - 四张验收截图由 `npm run shots` 现起一个临时后端灌数据后截取（`docs/shots/`）。
