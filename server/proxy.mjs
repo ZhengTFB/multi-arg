@@ -119,8 +119,18 @@ var CFG=${cfg};
 var PC=window.parent;
 function say(m){try{m.__arg=1;PC.postMessage(m,'*')}catch(e){}}
 function abs(u){try{return new URL(String(u),location.href)}catch(e){return null}}
-function open(u,blank){
+// 把链接折算成「真正要去的地方」：
+// 已经是代理地址就照用；写成 /about/ 这种根相对路径的，认为它属于被代理的站点，补上 prefix
+function map(u){
   var x=abs(u);
+  if(!x)return null;
+  if(x.origin===location.origin&&x.pathname.indexOf(CFG.prefix)!==0){
+    x=abs(CFG.prefix+x.pathname+x.search+x.hash);
+  }
+  return x;
+}
+function open(u,blank){
+  var x=map(u);
   if(!x){say({t:'blocked',url:String(u).slice(0,80)});return true}
   if(x.protocol!=='http:'&&x.protocol!=='https:'){
     say({t:'blocked',url:x.href});
@@ -166,12 +176,12 @@ document.addEventListener('submit',function(e){
   if(f&&f.tagName==='FORM'&&f.target&&f.target!=='_self')f.target='_self';
 },true);
 window.open=function(u){
-  var x=u?abs(u):null;
-  if(x)say({t:'navigate',url:x.href,blank:true});
+  var x=u?map(u):null;
+  if(x&&x.protocol!=='javascript:')say({t:'navigate',url:x.href,blank:true});
   var stub={closed:false,focus:function(){},blur:function(){},close:function(){},postMessage:function(){},
     document:{write:function(){},writeln:function(){},close:function(){}},opener:null};
   stub.location={
-    assign:function(v){var y=abs(v);if(y)say({t:'navigate',url:y.href,blank:true})},
+    assign:function(v){var y=map(v);if(y)say({t:'navigate',url:y.href,blank:true})},
     replace:function(v){stub.location.assign(v)}
   };
   try{Object.defineProperty(stub.location,'href',{set:function(v){stub.location.assign(v)}})}catch(e){}
