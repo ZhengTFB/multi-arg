@@ -312,6 +312,30 @@ textarea {
   cursor: grabbing;
 }
 
+/* 一大张纸：固定尺寸、可滚动、空白处可拖 */
+.people-canvas {
+  position: relative;
+  height: 420px;
+  overflow: auto;
+  background-color: #fffdf9;
+  background-image:
+    linear-gradient(rgba(196, 181, 165, 0.13) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(196, 181, 165, 0.13) 1px, transparent 1px);
+  background-size: 24px 24px;
+  border: 1px solid var(--linen);
+  border-radius: var(--r-card-sm);
+  cursor: grab;
+  touch-action: none;
+}
+
+.people-canvas:active {
+  cursor: grabbing;
+}
+
+.people-canvas svg {
+  display: block;
+}
+
 .home {
   height: 100dvh;
   overflow: hidden;
